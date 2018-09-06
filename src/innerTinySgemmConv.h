@@ -5,11 +5,11 @@
 #include <stdbool.h>
 #include "list.h"
 
-enum RANGE_STATUS
+enum MSG_STATUS
 {
-    RANGE_STATUS_IDEL,
-    RANGE_STATUS_BUSY,
-    RANGE_STATUS_DONE
+    MSG_STATUS_IDEL,
+    MSG_STATUS_BUSY,
+    MSG_STATUS_DONE
 };
 
 struct rangeInfo
@@ -22,9 +22,6 @@ struct rangeInfo
     uint32_t XBlocks;
     uint32_t YBlocks;
     uint32_t runOnlittleCore;
-    enum RANGE_STATUS status;
-    pthread_mutex_t lock;
-    pthread_cond_t jobDoneCondition;
     float *pBasis;
     bool bRelu;
     float *pPRelu;
@@ -42,16 +39,25 @@ struct matricRangeInfo
 enum THREAD_CMD
 {
     THREAD_CMD_EXIT,
-    THREAD_CMD_WORK
+    THREAD_CMD_SGEMM_WORK,
+    THREAD_CMD_IM2COL_WORK
 };
 
 struct msg
 {
     uint32_t cmd;
+    uint32_t coreId;
+    uint32_t idx;
     struct rangeInfo *pWorkCRange;
-    struct list_head list;
-    struct list_head listCtx;
-    struct list_head listWorkRange;
+    void *pPackBPerThread;
+    enum MSG_STATUS status;
+    pthread_mutex_t lock;
+    pthread_cond_t jobDoneCondition;
+    struct list_head listThread;
+    struct list_head listWork;
+    struct list_head listFree;
+    unsigned long beg;
+    unsigned long end;
 };
 
 struct thread_info
@@ -61,11 +67,10 @@ struct thread_info
     uint32_t bigCore;
     pthread_t thread_id;
     pthread_mutex_t queue_lock;
-    struct list_head head;
+    struct list_head msgHead;
     pthread_cond_t noempty;
     int32_t affinity;
     void *sgemmCtx;
-    void *pPackB;
 };
 
 struct tinySgemmConvCtx
@@ -74,14 +79,25 @@ struct tinySgemmConvCtx
     struct thread_info *pThreadInfo;
     pthread_mutex_t msgLock;
     struct list_head msgHeadFree;
-    struct list_head msgHeadBusy;
+    struct msg *pMsgPool;
+};
+
+struct tinySgemmInstance
+{
+    void *pPackA;
+    void *pIm2colB;
+    void *pPackBPerThread;
+    uint32_t M;
+    uint32_t N;
+    uint32_t K;
+    uint32_t packBPerThreadSize;
+    enum TINY_SGEMM_CONV_DATA_MODE mode;
+    struct tinySgemmConvCtx *pCtx;
 };
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-void returnMsg(struct tinySgemmConvCtx *pCtx, struct msg *pMsg);
 
 #ifdef __cplusplus
 }

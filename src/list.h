@@ -41,6 +41,23 @@ static inline int list_empty(const struct list_head *head)
     return head->next == head;
 }
 
+static inline int list_avail(const struct list_head *head)
+{
+    unsigned avail = 0;
+    struct list_head *pCur = head->next;
+    if (list_empty(head))
+        return 0;
+    else
+    {
+        while(pCur)
+        {
+            ++avail;
+            pCur = pCur->next;
+        }
+        return avail;
+    }
+}
+
 static inline void __list_del(struct list_head * prev, struct list_head * next)
 {
     next->prev = prev;

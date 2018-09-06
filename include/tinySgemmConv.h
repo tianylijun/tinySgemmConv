@@ -29,11 +29,22 @@ extern "C" {
 #endif
 
 int tinySgemmConvInit(uint32_t num_threads, int32_t stack_size, uint32_t (*affinity)[MAX_CORE_NUMBER], void **pCtx);
-int tinySgemmConv(void *pCtx,
-	              void *pA, void *pB, void *pC,
-	              uint32_t M, uint32_t N, uint32_t K,
-	              float *pBasis, bool bRelu, float *pRelu, bool bSharedPrelu,
-	              enum TINY_SGEMM_CONV_DATA_MODE mode);
+
+/* pCtx param is return by  tinySgemmConvInit */
+void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
+                                  uint32_t inChannels,  uint32_t inputH, uint32_t inputW,
+                                  uint32_t outChannels, uint32_t kernelH, uint32_t kernelW,
+                                  uint32_t padH, uint32_t padW,
+                                  uint32_t strideH, uint32_t strideW,
+                                  uint32_t dilateH, uint32_t dilateW,
+                                  enum TINY_SGEMM_CONV_DATA_MODE mode);
+/* pInstance param is return by  tinySgemmConvCreateInstance */
+int tinySgemmConv(void *pInstance,
+                  void *pInput, void *pOutPut,
+                  float *pBasis, bool bRelu, float *pRelu, bool bSharedPrelu,
+                  enum TINY_SGEMM_CONV_DATA_MODE mode);
+
+int tinySgemmConvReleaseInstance(void *pInstance);
 int tinySgemmConvDeinit(void *pCtx);
 
 #ifdef __cplusplus
