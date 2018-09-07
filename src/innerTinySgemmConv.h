@@ -61,7 +61,7 @@ struct thread_info
 struct msg
 {
     uint32_t cmd;
-    uint32_t sequenceId;
+    uint64_t sequenceId;
     enum MSG_STATUS status;
     struct thread_info *pThreadInfo;
     struct rangeInfo *pWorkCRange;

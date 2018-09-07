@@ -1,6 +1,9 @@
 #ifndef __TINYSGEMM_CONFIG_H
 #define __TINYSGEMM_CONFIG_H
 
+#define THREAD_STASTIC_INFO_ENABLE
+#define DEBUG_AFFINETY
+
 #ifndef TINY_SGEMM_BLOCK_M
 #define TINY_SGEMM_BLOCK_M (128)
 #endif

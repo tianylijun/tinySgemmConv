@@ -7,7 +7,6 @@
 #include <limits.h>
 #include <assert.h>
 #include <tinySgemmConv.h>
-#include "config.h"
 #include "common.h"
 #include "innerTinySgemmConv.h"
 #include "thread_server.h"
@@ -523,8 +522,10 @@ int tinySgemmConvReleaseInstance(void *pInstance)
     return 0;
 }
 
-static void waitForJobsDone(struct tinySgemmConvCtx *pCtxInner, struct list_head *workQueue)
+static void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *workQueue)
 {
+    assert(NULL != pCtx);
+    assert(NULL != workQueue);
     while (!list_empty(workQueue))
     {
         struct msg *pMsg = list_first_entry(workQueue, struct msg, listWork);
@@ -534,11 +535,10 @@ static void waitForJobsDone(struct tinySgemmConvCtx *pCtxInner, struct list_head
             pthread_cond_wait(&pMsg->jobDoneCondition, &pMsg->lock);
         list_del(&pMsg->listWork);
         pthread_mutex_unlock(&pMsg->lock);
-#define PRT_JOB_TIME
-#ifdef PRT_JOB_TIME
-        printf("[%d][%d] %d job done in %llu us\n", pMsg->cmd, pMsg->pThreadInfo->index, pMsg->sequenceId, pMsg->end - pMsg->beg);
+#ifdef HREAD_STASTIC_INFO_ENABLE
+        printf("[%d][%d] msg: %llu, done in %llu us\n", pMsg->cmd, pMsg->pThreadInfo->index, pMsg->sequenceId, pMsg->end - pMsg->beg);
 #endif
-        returnMsg(pCtxInner, pMsg);
+        returnMsg(pCtx, pMsg);
     }
 }
 

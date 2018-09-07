@@ -13,7 +13,7 @@
 #endif
 
 #ifndef MAX_MSGPOOL_NUM
-#define MAX_MSGPOOL_NUM (512U)
+#define MAX_MSGPOOL_NUM (1024U)
 #endif
 
 enum TINY_SGEMM_CONV_DATA_MODE

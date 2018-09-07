@@ -10,6 +10,7 @@
 #include "armNeon.h"
 #endif
 
+#include "config.h"
 #include "tinySgemmConv.h"
 
 // the alignment of all the allocated buffers

@@ -33,7 +33,6 @@ static struct msg * rcvMsg(struct thread_info *pThreadInfo)
     return pFirstMsg;
 }
 
-#define DEBUG_AFFINETY
 #ifdef DEBUG_AFFINETY
 static void showAffinty(struct thread_info *pThreadInfo)
 {
