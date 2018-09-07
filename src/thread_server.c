@@ -10,30 +10,60 @@
 #include "list.h"
 #include "jobs.h"
 
-void sendMsg(struct thread_info *pThreadInfo, struct msg *pMsg)
+void sendMsg(struct msg *pMsg)
 {
-    pthread_mutex_lock(&pThreadInfo->queue_lock);
-    list_add_tail(&pMsg->listThread, &pThreadInfo->msgHead);
-    pthread_cond_signal(&pThreadInfo->noempty);
-    pthread_mutex_unlock(&pThreadInfo->queue_lock);
+    assert(NULL != pMsg);
+    pthread_mutex_lock(&pMsg->pThreadInfo->queue_lock);
+    list_add_tail(&pMsg->listThread, &pMsg->pThreadInfo->msgHead);
+    pthread_cond_signal(&pMsg->pThreadInfo->noempty);
+    pthread_mutex_unlock(&pMsg->pThreadInfo->queue_lock);
 }
 
 static struct msg * rcvMsg(struct thread_info *pThreadInfo)
 {
     struct msg *pFirstMsg = NULL;
+    assert(NULL != pThreadInfo);
     pthread_mutex_lock(&pThreadInfo->queue_lock);
     while (list_empty(&pThreadInfo->msgHead))
         pthread_cond_wait(&pThreadInfo->noempty, &pThreadInfo->queue_lock);
     pFirstMsg = list_first_entry(&pThreadInfo->msgHead, struct msg, listThread);
     list_del(&pFirstMsg->listThread);
+    pThreadInfo->jobsDoneNum++;
     pthread_mutex_unlock(&pThreadInfo->queue_lock);
     return pFirstMsg;
 }
 
+#define DEBUG_AFFINETY
+#ifdef DEBUG_AFFINETY
+static void showAffinty(struct thread_info *pThreadInfo)
+{
+    int ret = -1;
+    uint32_t availCores = 0, realWorkCores = 0;
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    availCores = sysconf(_SC_NPROCESSORS_CONF);
+    realWorkCores = T_MIN(availCores, 32);
+    ret = sched_getaffinity(0, sizeof(mask), &mask);
+    if (0 != ret)
+    {
+        printf("%s, %d\n", "sched_getaffinity failed", ret);
+        return;
+    }
+    printf("thread %d can run at core [", pThreadInfo->index);
+    for(uint32_t i = 0; i < realWorkCores; i++)
+    {
+        if (CPU_ISSET(i, &mask))
+            printf(" %d", i);
+    }
+    printf(" ]\n");
+}
+#endif
+
 void * sgemm_thread_process(void *args)
 {
-    int ret = -1, i = 0, availCores = 0, realWorkCores = 0, deadloop = 1;
+    int ret = -1;
     cpu_set_t mask;
+    uint32_t i = 0, availCores = 0, realWorkCores = 0, deadloop = 1;
     struct thread_info *pThreadInfo = (struct thread_info *)args;
     struct tinySgemmConvCtx *pCtx = NULL;
     if (NULL == pThreadInfo)
@@ -42,9 +72,9 @@ void * sgemm_thread_process(void *args)
     if (NULL == pCtx)
         return NULL;
     availCores = sysconf(_SC_NPROCESSORS_CONF);
-    realWorkCores = T_MIN(availCores, 32);
+    realWorkCores = T_MIN(availCores, MAX_CORE_NUMBER);
 
-    if (0 != pThreadInfo->affinity)
+    if (0xffffffff != pThreadInfo->affinity)
     {
         uint32_t availMask = 0, flag = 0;
         CPU_ZERO(&mask);
@@ -58,7 +88,7 @@ void * sgemm_thread_process(void *args)
             if (CPU_ISSET(i, &mask))
                 availMask |= (1U<<i);
         CPU_ZERO(&mask);
-        for (int k = 0; k < realWorkCores; ++k)
+        for (uint32_t k = 0; k < realWorkCores; ++k)
         {
             if ((pThreadInfo->affinity & (1U<<k)) && (availMask & (1U<<k)))
             {
@@ -77,23 +107,8 @@ void * sgemm_thread_process(void *args)
         }
         else
             printf("\033[43mWarning:: skip set thread %d affinity(0x%x), as core not avaiable\n", pThreadInfo->index, pThreadInfo->affinity);
-
-#define DEBUG_AFFINETY
 #ifdef DEBUG_AFFINETY
-        CPU_ZERO(&mask);
-        ret = sched_getaffinity(0, sizeof(mask), &mask);
-        if (0 != ret)
-        {
-            printf("%s, %d\n", "sched_getaffinity failed", ret);
-            return NULL;
-        }
-        printf("thread %d can run at core [", pThreadInfo->index);
-        for(i = 0; i < realWorkCores; i++)
-        {
-            if (CPU_ISSET(i, &mask))
-                printf(" %d", i);
-        }
-        printf(" ]\n");
+        showAffinty(pThreadInfo);
 #endif
     }
 
@@ -111,7 +126,6 @@ void * sgemm_thread_process(void *args)
         pthread_mutex_destroy(&pThreadInfo->queue_lock);
         return NULL;
     }
-
     printf("thread %d start\n", pThreadInfo->index);
 
     while(deadloop)

@@ -8,7 +8,7 @@
 #include "tinySgemmConv.h"
 #include "innerTinySgemmConv.h"
 
-void sendMsg(struct thread_info *pThreadInfo, struct msg *pMsg);
+void sendMsg(struct msg *pMsg);
 void *sgemm_thread_process(void *args);
 
 #endif

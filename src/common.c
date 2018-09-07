@@ -38,6 +38,7 @@ uint32_t getAvaiableCoresMaxFreq(uint32_t (*coreMaxFreqs)[MAX_CORE_NUMBER], uint
     cpu_set_t mask;
     uint32_t maxCores = sysconf(_SC_NPROCESSORS_CONF);
     uint32_t max_freq_khz = 0;
+    char path[256];
 
     CPU_ZERO(&mask);
     if (0 != sched_getaffinity(0, sizeof(mask), &mask))
@@ -51,7 +52,6 @@ uint32_t getAvaiableCoresMaxFreq(uint32_t (*coreMaxFreqs)[MAX_CORE_NUMBER], uint
         if (CPU_ISSET(i, &mask))
         {
             uint32_t cur_max_freq_khz = 0;
-            char path[256];
             sprintf(path, "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", i);
             FILE* fp = fopen(path, "rb");
             if (NULL != fp)

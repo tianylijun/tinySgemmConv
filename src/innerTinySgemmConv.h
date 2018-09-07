@@ -43,23 +43,6 @@ enum THREAD_CMD
     THREAD_CMD_IM2COL_WORK
 };
 
-struct msg
-{
-    uint32_t cmd;
-    uint32_t coreId;
-    uint32_t idx;
-    struct rangeInfo *pWorkCRange;
-    void *pPackBPerThread;
-    enum MSG_STATUS status;
-    pthread_mutex_t lock;
-    pthread_cond_t jobDoneCondition;
-    struct list_head listThread;
-    struct list_head listWork;
-    struct list_head listFree;
-    unsigned long beg;
-    unsigned long end;
-};
-
 struct thread_info
 {
     uint32_t index;
@@ -69,8 +52,27 @@ struct thread_info
     pthread_mutex_t queue_lock;
     struct list_head msgHead;
     pthread_cond_t noempty;
-    int32_t affinity;
+    uint32_t affinity;
     void *sgemmCtx;
+    struct list_head biglittlecorelist;
+    uint64_t jobsDoneNum;
+};
+
+struct msg
+{
+    uint32_t cmd;
+    uint32_t sequenceId;
+    enum MSG_STATUS status;
+    struct thread_info *pThreadInfo;
+    struct rangeInfo *pWorkCRange;
+    void *pPackBPerThread;
+    pthread_mutex_t lock;
+    pthread_cond_t jobDoneCondition;
+    struct list_head listThread;
+    struct list_head listWork;
+    struct list_head listFree;
+    uint64_t beg;
+    uint64_t end;
 };
 
 struct tinySgemmConvCtx
@@ -78,8 +80,10 @@ struct tinySgemmConvCtx
     uint32_t num_threads;
     struct thread_info *pThreadInfo;
     pthread_mutex_t msgLock;
-    struct list_head msgHeadFree;
     struct msg *pMsgPool;
+    struct list_head msgHeadFree;
+    struct list_head bigCoreThreads;
+    struct list_head littleCoreThreads;
 };
 
 struct tinySgemmInstance
