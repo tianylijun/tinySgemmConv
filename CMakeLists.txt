@@ -10,7 +10,7 @@ option(ENABLE_OPENMP "openmp support" ON)
 ENABLE_LANGUAGE(ASM)
 
 file(GLOB LIB_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
-file(GLOB LIB_CSRC ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c)
+file(GLOB LIB_CSRC ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
 if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
 file(GLOB LIB_SSRC ${CMAKE_CURRENT_SOURCE_DIR}/src/arm64/*.S)
@@ -25,8 +25,18 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wno-unused-function -Wno-unused-parameter")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffast-math")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden -frtti")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+message(STATUS "compile use clang")
 
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+message(STATUS "compile use gcc")
+
+endif ()
+
+if( CMAKE_SYSTEM_PROCESSOR MATCHES armv7-a )
+add_definitions(-mfpu=neon-fp16)
+endif()
 message(STATUS "C flags: ${CMAKE_C_FLAGS}")
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")

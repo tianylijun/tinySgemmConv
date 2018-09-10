@@ -27,6 +27,20 @@
 #define WMB  __asm__ __volatile__ ("dmb  ishst" : : : "memory")
 #endif
 
+#define POINTER_CHECK(p, r) \
+    if (NULL == (p)) \
+    { \
+        printf("%s %d: NULL pointer err\n", __func__, __LINE__); \
+        return (r); \
+    }
+
+#define POINTER_CHECK_NO_RET(p) \
+    if (NULL == (p)) \
+    { \
+        printf("%s %d: NULL pointer err\n", __func__, __LINE__); \
+        return; \
+    }
+
 static inline unsigned alignSize(unsigned sz, int n)
 {
     return (sz + n-1) & -n;
@@ -45,7 +59,6 @@ extern "C" {
 
 void* tinySgemmMalloc(uint32_t size);
 void tinySgemmFree(void* ptr);
-uint32_t getAvaiableCoresMaxFreq(uint32_t (*coreMaxFreqs)[MAX_CORE_NUMBER], uint32_t *maxFreq);
 
 #ifdef __cplusplus
 }

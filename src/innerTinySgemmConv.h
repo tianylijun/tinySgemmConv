@@ -5,13 +5,6 @@
 #include <stdbool.h>
 #include "list.h"
 
-enum MSG_STATUS
-{
-    MSG_STATUS_IDEL,
-    MSG_STATUS_BUSY,
-    MSG_STATUS_DONE
-};
-
 struct rangeInfo
 {
     uint8_t *pStart;
@@ -49,39 +42,22 @@ struct thread_info
     uint32_t maxFrequence;
     uint32_t bigCore;
     pthread_t thread_id;
-    pthread_mutex_t queue_lock;
-    struct list_head msgHead;
-    pthread_cond_t noempty;
+    pthread_mutex_t msgQueueLock;
+    struct list_head msgQueueList;
+    pthread_cond_t msgQueueNoEmpty;
     uint32_t affinity;
     void *sgemmCtx;
     struct list_head biglittlecorelist;
     uint64_t jobsDoneNum;
 };
 
-struct msg
-{
-    uint32_t cmd;
-    uint64_t sequenceId;
-    enum MSG_STATUS status;
-    struct thread_info *pThreadInfo;
-    struct rangeInfo *pWorkCRange;
-    void *pPackBPerThread;
-    pthread_mutex_t lock;
-    pthread_cond_t jobDoneCondition;
-    struct list_head listThread;
-    struct list_head listWork;
-    struct list_head listFree;
-    uint64_t beg;
-    uint64_t end;
-};
-
 struct tinySgemmConvCtx
 {
     uint32_t num_threads;
     struct thread_info *pThreadInfo;
-    pthread_mutex_t msgLock;
+    pthread_mutex_t msgPoolLock;
     struct msg *pMsgPool;
-    struct list_head msgHeadFree;
+    struct list_head msgPoolList;
     struct list_head bigCoreThreads;
     struct list_head littleCoreThreads;
 };

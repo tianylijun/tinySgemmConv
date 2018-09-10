@@ -10,11 +10,12 @@
 #include "common.h"
 #include "innerTinySgemmConv.h"
 #include "thread_server.h"
+#include "messageQueue.h"
 
-static inline uint32_t getBindCoresMaxFreqFromAffinity(uint32_t affinity, uint32_t *coresMaxFreq)
+static inline uint32_t getMaxFreqAccordToAffinity(uint32_t affinity, uint32_t *coresMaxFreq)
 {
     uint32_t maxFreq = 0;
-    assert(NULL != coresMaxFreq);
+    POINTER_CHECK(coresMaxFreq, 0);
     for (uint32_t i = 0; i < MAX_CORE_NUMBER; ++i)
     {
         if (affinity & (1U<<i))
@@ -23,7 +24,13 @@ static inline uint32_t getBindCoresMaxFreqFromAffinity(uint32_t affinity, uint32
     return maxFreq;
 }
 
-int tinySgemmConvInit(uint32_t num_threads, int32_t stack_size, uint32_t (*affinity)[MAX_CORE_NUMBER], void **pCtx)
+int tinySgemmConvInit
+(
+    uint32_t num_threads, 
+    int32_t stack_size, 
+    uint32_t (*affinity)[MAX_CORE_NUMBER], 
+    void **pCtx
+)
 {
     int32_t ret = 0;
     uint32_t availCores = 0;
@@ -32,10 +39,10 @@ int tinySgemmConvInit(uint32_t num_threads, int32_t stack_size, uint32_t (*affin
     struct tinySgemmConvCtx *pCtxInner = NULL;
     uint32_t coresMaxFreq[MAX_CORE_NUMBER];
     uint32_t maxFreq;
-    struct msg *pMsg = NULL;
+    struct msg *pMsgPool = NULL;
 
-    if (NULL == pCtx)
-        return -1;
+    POINTER_CHECK(pCtx, -1);
+    POINTER_CHECK(affinity, -2);
 
     if (-1 != stack_size)
     {
@@ -61,7 +68,7 @@ int tinySgemmConvInit(uint32_t num_threads, int32_t stack_size, uint32_t (*affin
     num_threads = T_MIN(num_threads, availCores);
     printf("availCores :%d\n", availCores);
 
-    pThreadInfo = calloc(num_threads, sizeof(struct thread_info));
+    pThreadInfo = (struct thread_info*)calloc(num_threads, sizeof(struct thread_info));
     if (NULL == pThreadInfo)
     {
         printf("%s, %d\n", "calloc thread info failed", num_threads);
@@ -89,7 +96,7 @@ int tinySgemmConvInit(uint32_t num_threads, int32_t stack_size, uint32_t (*affin
         if (NULL != affinity) /* user define bind core */
             pThreadInfo[i].affinity = affinity[0][i];
         if (0xffffffff != pThreadInfo[i].affinity)
-            pThreadInfo[i].maxFrequence = getBindCoresMaxFreqFromAffinity(pThreadInfo[i].affinity, coresMaxFreq);
+            pThreadInfo[i].maxFrequence = getMaxFreqAccordToAffinity(pThreadInfo[i].affinity, coresMaxFreq);
         else /* default bind */
             pThreadInfo[i].maxFrequence = coresMaxFreq[i];
         if (maxFreq == pThreadInfo[i].maxFrequence)
@@ -130,8 +137,8 @@ int tinySgemmConvInit(uint32_t num_threads, int32_t stack_size, uint32_t (*affin
         }
     }
 
-    INIT_LIST_HEAD(&pCtxInner->msgHeadFree);
-    ret = pthread_mutex_init(&pCtxInner->msgLock, NULL);
+    INIT_LIST_HEAD(&pCtxInner->msgPoolList);
+    ret = pthread_mutex_init(&pCtxInner->msgPoolLock, NULL);
     if (0 != ret)
     {
         printf("%s, %d\n", "pthread_mutex_init(msLock) failed", ret);
@@ -140,67 +147,23 @@ int tinySgemmConvInit(uint32_t num_threads, int32_t stack_size, uint32_t (*affin
         return -8;
     }
 
-    pMsg = (struct msg *)calloc(MAX_MSGPOOL_NUM, sizeof(struct msg));
-    if (NULL == pMsg)
+    pMsgPool = msgPoolInit(pCtxInner, MAX_MSGPOOL_NUM);
+    if (NULL == pMsgPool)
     {
         printf("%s, %d\n", "msg pool malloc failed", MAX_MSGPOOL_NUM * (uint32_t)sizeof(struct msg));
-        pthread_mutex_destroy(&pCtxInner->msgLock);
+        pthread_mutex_destroy(&pCtxInner->msgPoolLock);
         free(pThreadInfo);
         free(pCtxInner);
         return -9;
     }
 
-    for (uint32_t i = 0; i < MAX_MSGPOOL_NUM; ++i)
-        list_add_tail(&pMsg[i].listFree, &pCtxInner->msgHeadFree);
-
     pCtxInner->num_threads = num_threads;
     pCtxInner->pThreadInfo = pThreadInfo;
-    pCtxInner->pMsgPool    = pMsg;
+    pCtxInner->pMsgPool    = pMsgPool;
     *pCtx = pCtxInner;
     return ret;
 }
 
-static void returnMsg(struct tinySgemmConvCtx *pCtx, struct msg *pMsg)
-{
-    pthread_mutex_lock(&pCtx->msgLock);
-    list_add_tail(&pMsg->listFree, &pCtx->msgHeadFree);
-    pthread_mutex_unlock(&pCtx->msgLock);
-}
-
-static struct msg * fetchMsg(struct tinySgemmConvCtx *pCtx)
-{
-    int ret;
-    static uint64_t msgSequence = 0;
-    struct msg *pMsg = NULL;
-    pthread_mutex_lock(&pCtx->msgLock);
-    if (list_empty(&pCtx->msgHeadFree))
-    {
-        pthread_mutex_unlock(&pCtx->msgLock);
-        return NULL;
-    }
-    pMsg = list_first_entry(&pCtx->msgHeadFree, struct msg, listFree);
-    list_del(&pMsg->listFree);
-    pMsg->sequenceId = ++msgSequence;
-    pthread_mutex_unlock(&pCtx->msgLock);
-    assert(NULL != pMsg);
-    pMsg->status = MSG_STATUS_IDEL;
-    ret = pthread_mutex_init(&pMsg->lock, NULL);
-    if (0 != ret)
-    {
-        printf("%s %d, %d\n", "msg pthread_mutex_init failed at line", __LINE__, ret);
-        returnMsg(pCtx, pMsg);
-        return NULL;
-    }
-    ret = pthread_cond_init(&pMsg->jobDoneCondition, NULL);
-    if (0 != ret)
-    {
-        printf("%s %d, %d\n", "msg pthread_cond_init failed at line", __LINE__, ret);
-        pthread_mutex_destroy(&pMsg->lock);
-        returnMsg(pCtx, pMsg);
-        return NULL;
-    }
-    return pMsg;
-}
 
 static inline struct rangeInfo *range(struct rangeInfo *pRange, uint32_t i, uint32_t j)
 {
@@ -410,7 +373,7 @@ static struct matricRangeInfo* createMatircRange(void *pA, void *pB, void *pC,
 
 static void tinySgemmConvPackA(void *pA, void *pPackA, uint32_t M, uint32_t K, enum TINY_SGEMM_CONV_DATA_MODE mode)
 {
-
+     
 }
 
 /* do pack weight & im2col B buffer malloc */
@@ -438,11 +401,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     assert(NULL != pWeight);
 
     psgemmInstance = (struct tinySgemmInstance*)calloc(1, sizeof(struct tinySgemmInstance));
-    if (NULL == psgemmInstance)
-    {
-        printf("%s\n", "tinySgemmInstance malloc failed");
-        return NULL;
-    }
+    POINTER_CHECK(psgemmInstance, NULL);
 
     /* Im2col B buffer */
     if (kernelW == 1 && kernelH == 1 && strideH == 1 && strideW == 1 && padH == 0 && padW == 0)
@@ -481,7 +440,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
 
     /* malloc packB & packA buffer */
     packBPerThreadSize = alignSize(TINY_SGEMM_BLOCK_K*TINY_SGEMM_BLOCK_N*packBTypeSize, MALLOC_MEM_ALIGN);
-    pPackBPerThread = (void *)tinySgemmMalloc(pCtxInner->num_threads*packBPerThreadSize + M*K*packATypeSize);
+    pPackBPerThread = (void *)tinySgemmMalloc(pCtxInner->num_threads*packBPerThreadSize + M*alignSize(K*packATypeSize, MALLOC_MEM_ALIGN));
     if (NULL == pPackBPerThread)
     {
         printf("%s\n", "packB buffer malloc failed");
@@ -502,7 +461,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     psgemmInstance->pPackBPerThread    = pPackBPerThread;
     psgemmInstance->packBPerThreadSize = packBPerThreadSize;
     psgemmInstance->mode               = mode;
-    psgemmInstance->pCtx               = pCtx;
+    psgemmInstance->pCtx               = (struct tinySgemmConvCtx *)pCtx;
 
     return (void*)psgemmInstance;
 }
@@ -510,11 +469,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
 int tinySgemmConvReleaseInstance(void *pInstance)
 {
     struct tinySgemmInstance *pInnerInstance = (struct tinySgemmInstance *)pInstance;
-    if (NULL == pInnerInstance)
-    {
-        printf("%s\n", "NULL pointer in release instance");
-        return -1;
-    }
+    POINTER_CHECK(pInnerInstance, -1);
 
     tinySgemmFree(pInnerInstance->pIm2colB); /* NULL pointer check inner */
     tinySgemmFree(pInnerInstance->pPackBPerThread);
@@ -522,57 +477,18 @@ int tinySgemmConvReleaseInstance(void *pInstance)
     return 0;
 }
 
-static void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *workQueue)
-{
-    assert(NULL != pCtx);
-    assert(NULL != workQueue);
-    while (!list_empty(workQueue))
-    {
-        struct msg *pMsg = list_first_entry(workQueue, struct msg, listWork);
-        assert(NULL != pMsg);
-        pthread_mutex_lock(&pMsg->lock);
-        while (MSG_STATUS_DONE != pMsg->status)
-            pthread_cond_wait(&pMsg->jobDoneCondition, &pMsg->lock);
-        list_del(&pMsg->listWork);
-        pthread_mutex_unlock(&pMsg->lock);
-#ifdef HREAD_STASTIC_INFO_ENABLE
-        printf("[%d][%d] msg: %llu, done in %llu us\n", pMsg->cmd, pMsg->pThreadInfo->index, pMsg->sequenceId, pMsg->end - pMsg->beg);
-#endif
-        returnMsg(pCtx, pMsg);
-    }
-}
-
-static struct thread_info *getMinJobsNumThread(struct list_head *pHead)
-{
-    struct thread_info *pThreadInfoRet = NULL;
-    uint64_t minJobsDoneNum = 0xffffffffffffffff;
-    struct list_head *pos;
-    assert(NULL != pHead);
-    list_for_each(pos, pHead)
-    {
-        struct thread_info *pThreadInfo = list_entry(pos, struct thread_info, biglittlecorelist);
-        if (pThreadInfo->jobsDoneNum < minJobsDoneNum)
-        {
-            minJobsDoneNum = pThreadInfo->jobsDoneNum;
-            pThreadInfoRet = pThreadInfo;
-        }
-    }
-
-    return pThreadInfoRet;
-}
-
 int tinySgemmConv(void *pInstance,
                   void *pInput, void *pOutput,
                   float *pBasis, bool bRelu, float *pPRelu, bool bSharedPrelu,
+                  float (*int8Scale)[3],
                   enum TINY_SGEMM_CONV_DATA_MODE mode)
 {
-    int ret = 0;
-    struct matricRangeInfo* pMarticRangeInfo = NULL;
+    struct matricRangeInfo* pMarticRangeInfo;
     struct tinySgemmInstance *psgemmInstance = (struct tinySgemmInstance *)pInstance;
-    struct tinySgemmConvCtx *pCtxInner = NULL;
-    struct list_head workQueue;
+    struct tinySgemmConvCtx *pCtxInner;
+    struct list_head jobsQueue;
     uint32_t M, N, K;
-    void *pB = NULL;
+    void *pB;
 
     if ((NULL == psgemmInstance) || (NULL == pInput) || (NULL == pOutput))
     {
@@ -583,11 +499,10 @@ int tinySgemmConv(void *pInstance,
     M = psgemmInstance->M;
     N = psgemmInstance->N;
     K = psgemmInstance->K;
-
     pCtxInner = psgemmInstance->pCtx;
-    assert(NULL != pCtxInner);
-    INIT_LIST_HEAD(&workQueue);
+    POINTER_CHECK(pCtxInner, -2);
 
+    INIT_LIST_HEAD(&jobsQueue);
     if (NULL != psgemmInstance->pIm2colB)
     {
         /* TODO: do im2col mutithread */
@@ -598,14 +513,10 @@ int tinySgemmConv(void *pInstance,
         pB = pInput;
 
     /* wait for all im2col jobs done */
-    waitForJobsDone(pCtxInner, &workQueue);
+    waitForJobsDone(pCtxInner, &jobsQueue);
 
     pMarticRangeInfo = createMatircRange(psgemmInstance->pPackA, pB, pOutput, M, N, K, pBasis, bRelu, pPRelu, bSharedPrelu, mode);
-    if (NULL == pMarticRangeInfo)
-    {
-        printf("%s\n", "matricRangeInfo create failed");
-        return -4;
-    }
+    POINTER_CHECK(pMarticRangeInfo, -3);
 
     /* assign range to threads */
     for (uint32_t i = 0; i < pMarticRangeInfo->pCRange->YBlocks; ++i)
@@ -625,26 +536,24 @@ int tinySgemmConv(void *pInstance,
             pMsg->pPackBPerThread = (uint8_t*)psgemmInstance->pPackBPerThread + pThreadInfo->index*psgemmInstance->packBPerThreadSize;
             pMsg->pThreadInfo     = pThreadInfo;
             sendMsg(pMsg);
-            list_add_tail(&pMsg->listWork, &workQueue);
+            list_add_tail(&pMsg->listJobsQueue, &jobsQueue);
         }
     }
 
     /* wait for all sgemm jobs done */
-    waitForJobsDone(pCtxInner, &workQueue);
+    waitForJobsDone(pCtxInner, &jobsQueue);
     free(pMarticRangeInfo);
-    return ret;
+    return 0;
 }
 
 int tinySgemmConvDeinit(void *pCtx)
 {
-    struct list_head workQueue;
+    struct list_head jobsQueue;
     struct tinySgemmConvCtx *pCtxInner = (struct tinySgemmConvCtx *)pCtx;
-    if (NULL == pCtxInner)
-    {
-        printf("%s, deinit failed\n", "NULL pCtx");
-        return -1;
-    }
-    INIT_LIST_HEAD(&workQueue);
+    POINTER_CHECK(pCtxInner, -1);
+
+    /* send exit cmd msg to each thread */
+    INIT_LIST_HEAD(&jobsQueue);
     for (uint32_t i = 0; i < pCtxInner->num_threads; i++)
     {
         struct msg *pMsg = (struct msg *)fetchMsg(pCtxInner);
@@ -652,17 +561,19 @@ int tinySgemmConvDeinit(void *pCtx)
         pMsg->cmd         = THREAD_CMD_EXIT;
         pMsg->pThreadInfo = &pCtxInner->pThreadInfo[i];
         sendMsg(pMsg);
-        list_add_tail(&pMsg->listWork, &workQueue);
+        list_add_tail(&pMsg->listJobsQueue, &jobsQueue);
     }
-    waitForJobsDone(pCtxInner, &workQueue);
+    waitForJobsDone(pCtxInner, &jobsQueue);
+
     for (uint32_t i = 0; i < pCtxInner->num_threads; i++)
     {
         pthread_join(pCtxInner->pThreadInfo[i].thread_id, NULL);
-        pthread_mutex_destroy(&pCtxInner->pThreadInfo[i].queue_lock);
-        pthread_cond_destroy (&pCtxInner->pThreadInfo[i].noempty);
+        pthread_mutex_destroy(&pCtxInner->pThreadInfo[i].msgQueueLock);
+        pthread_cond_destroy(&pCtxInner->pThreadInfo[i].msgQueueNoEmpty);
     }
-    free(pCtxInner->pMsgPool);
+
     free(pCtxInner->pThreadInfo);
+    msgPoolDeInit(pCtxInner);
     free(pCtxInner);
     return 0;
 }

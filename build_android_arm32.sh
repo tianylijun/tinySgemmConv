@@ -8,3 +8,4 @@ cmake -DCMAKE_TOOLCHAIN_FILE=$NDK_ROOT/build/cmake/android.toolchain.cmake -DAND
 make -j4
 make install
 popd
+popd

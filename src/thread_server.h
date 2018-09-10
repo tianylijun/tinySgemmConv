@@ -8,7 +8,9 @@
 #include "tinySgemmConv.h"
 #include "innerTinySgemmConv.h"
 
-void sendMsg(struct msg *pMsg);
+uint32_t getAvaiableCoresMaxFreq(uint32_t (*coreMaxFreqs)[MAX_CORE_NUMBER], uint32_t *maxFreq);
+void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *workQueue);
+struct thread_info *getMinJobsNumThread(struct list_head *pHead);
 void *sgemm_thread_process(void *args);
 
 #endif

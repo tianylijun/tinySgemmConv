@@ -2,42 +2,20 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
-#define __USE_GNU
+//#define __USE_GNU
 #include <sched.h>
 #include <pthread.h>
 #include "common.h"
 #include "thread_server.h"
 #include "list.h"
 #include "jobs.h"
-
-void sendMsg(struct msg *pMsg)
-{
-    assert(NULL != pMsg);
-    pthread_mutex_lock(&pMsg->pThreadInfo->queue_lock);
-    list_add_tail(&pMsg->listThread, &pMsg->pThreadInfo->msgHead);
-    pthread_cond_signal(&pMsg->pThreadInfo->noempty);
-    pthread_mutex_unlock(&pMsg->pThreadInfo->queue_lock);
-}
-
-static struct msg * rcvMsg(struct thread_info *pThreadInfo)
-{
-    struct msg *pFirstMsg = NULL;
-    assert(NULL != pThreadInfo);
-    pthread_mutex_lock(&pThreadInfo->queue_lock);
-    while (list_empty(&pThreadInfo->msgHead))
-        pthread_cond_wait(&pThreadInfo->noempty, &pThreadInfo->queue_lock);
-    pFirstMsg = list_first_entry(&pThreadInfo->msgHead, struct msg, listThread);
-    list_del(&pFirstMsg->listThread);
-    pThreadInfo->jobsDoneNum++;
-    pthread_mutex_unlock(&pThreadInfo->queue_lock);
-    return pFirstMsg;
-}
+#include "messageQueue.h"
 
 #ifdef DEBUG_AFFINETY
 static void showAffinty(struct thread_info *pThreadInfo)
 {
     int ret = -1;
-    uint32_t availCores = 0, realWorkCores = 0;
+    uint32_t availCores = 0, realWorkCores = 0, i;
     cpu_set_t mask;
     CPU_ZERO(&mask);
     availCores = sysconf(_SC_NPROCESSORS_CONF);
@@ -49,7 +27,7 @@ static void showAffinty(struct thread_info *pThreadInfo)
         return;
     }
     printf("thread %d can run at core [", pThreadInfo->index);
-    for(uint32_t i = 0; i < realWorkCores; i++)
+    for(i = 0; i < realWorkCores; i++)
     {
         if (CPU_ISSET(i, &mask))
             printf(" %d", i);
@@ -58,18 +36,93 @@ static void showAffinty(struct thread_info *pThreadInfo)
 }
 #endif
 
+uint32_t getAvaiableCoresMaxFreq(uint32_t (*coreMaxFreqs)[MAX_CORE_NUMBER], uint32_t *maxFreq)
+{
+    uint32_t i = 0, availCores = 0;
+    cpu_set_t mask;
+    uint32_t maxCores = sysconf(_SC_NPROCESSORS_CONF);
+    uint32_t max_freq_khz = 0;
+    char path[256];
+
+    CPU_ZERO(&mask);
+    if (0 != sched_getaffinity(0, sizeof(mask), &mask))
+    {
+        printf("%s line %d\n", "sched_getaffinity failed", __LINE__);
+        return 0;
+    }
+
+    for(i = 0; i < maxCores; i++)
+    {
+        if (CPU_ISSET(i, &mask))
+        {
+            uint32_t cur_max_freq_khz = 0;
+            sprintf(path, "/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_max_freq", i);
+            FILE* fp = fopen(path, "rb");
+            if (NULL != fp)
+            {
+                fscanf(fp, "%d", &cur_max_freq_khz);
+                fclose(fp);
+            }
+            if ((NULL != coreMaxFreqs) && (availCores < MAX_CORE_NUMBER))
+                coreMaxFreqs[0][availCores] = cur_max_freq_khz;
+            max_freq_khz = T_MAX(max_freq_khz, cur_max_freq_khz);
+            availCores++;
+        }
+    }
+    if (NULL != maxFreq)
+        *maxFreq = max_freq_khz;
+    return availCores;
+}
+
+void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *workQueue)
+{
+    assert(NULL != pCtx);
+    assert(NULL != workQueue);
+    while (!list_empty(workQueue))
+    {
+        struct msg *pMsg = list_first_entry(workQueue, struct msg, listJobsQueue);
+        assert(NULL != pMsg);
+        pthread_mutex_lock(&pMsg->lock);
+        while (MSG_STATUS_DONE != pMsg->status)
+            pthread_cond_wait(&pMsg->jobDoneCondition, &pMsg->lock);
+        list_del(&pMsg->listJobsQueue);
+        pthread_mutex_unlock(&pMsg->lock);
+#ifdef HREAD_STASTIC_INFO_ENABLE
+        printf("[%d][%d] msg: %llu, done in %llu us\n", pMsg->cmd, pMsg->pThreadInfo->index, pMsg->sequenceId, pMsg->end - pMsg->beg);
+#endif
+        returnMsg(pCtx, pMsg);
+    }
+}
+
+struct thread_info *getMinJobsNumThread(struct list_head *pHead)
+{
+    struct thread_info *pThreadInfoRet = NULL;
+    uint64_t minJobsDoneNum = 0xffffffffffffffff;
+    struct list_head *pos;
+    assert(NULL != pHead);
+    list_for_each(pos, pHead)
+    {
+        struct thread_info *pThreadInfo = list_entry(pos, struct thread_info, biglittlecorelist);
+        if (pThreadInfo->jobsDoneNum < minJobsDoneNum)
+        {
+            minJobsDoneNum = pThreadInfo->jobsDoneNum;
+            pThreadInfoRet = pThreadInfo;
+        }
+    }
+
+    return pThreadInfoRet;
+}
+
 void * sgemm_thread_process(void *args)
 {
     int ret = -1;
     cpu_set_t mask;
     uint32_t i = 0, availCores = 0, realWorkCores = 0, deadloop = 1;
     struct thread_info *pThreadInfo = (struct thread_info *)args;
-    struct tinySgemmConvCtx *pCtx = NULL;
-    if (NULL == pThreadInfo)
-        return NULL;
+    struct tinySgemmConvCtx *pCtx;
+    POINTER_CHECK(pThreadInfo, NULL);
     pCtx =  (struct tinySgemmConvCtx *)pThreadInfo->sgemmCtx;
-    if (NULL == pCtx)
-        return NULL;
+    POINTER_CHECK(pCtx, NULL);
     availCores = sysconf(_SC_NPROCESSORS_CONF);
     realWorkCores = T_MIN(availCores, MAX_CORE_NUMBER);
 
@@ -111,18 +164,18 @@ void * sgemm_thread_process(void *args)
 #endif
     }
 
-    INIT_LIST_HEAD(&pThreadInfo->msgHead);
-    ret = pthread_mutex_init(&pThreadInfo->queue_lock, NULL);
+    INIT_LIST_HEAD(&pThreadInfo->msgQueueList);
+    ret = pthread_mutex_init(&pThreadInfo->msgQueueLock, NULL);
     if (0 != ret)
     {
         printf("%s, %d\n", "pthread_mutex_init failed", ret);
         return NULL;
     }
-    ret = pthread_cond_init(&pThreadInfo->noempty, NULL);
+    ret = pthread_cond_init(&pThreadInfo->msgQueueNoEmpty, NULL);
     if (0 != ret)
     {
         printf("%s, %d\n", "pthread_cond_init failed", ret);
-        pthread_mutex_destroy(&pThreadInfo->queue_lock);
+        pthread_mutex_destroy(&pThreadInfo->msgQueueLock);
         return NULL;
     }
     printf("thread %d start\n", pThreadInfo->index);
@@ -133,7 +186,7 @@ void * sgemm_thread_process(void *args)
         WMB;
 
         pMsg->status = MSG_STATUS_BUSY;
-        pMsg->beg = timestamp();
+        pMsg->timeStampBeg = timestamp();
         switch(pMsg->cmd)
         {
         case THREAD_CMD_SGEMM_WORK:
@@ -146,13 +199,16 @@ void * sgemm_thread_process(void *args)
             break;
         case THREAD_CMD_EXIT:
             deadloop = 0;
+            /* clear msg queue */
+            INIT_LIST_HEAD(&pThreadInfo->msgQueueList);
             break;
         }
-        pMsg->end = timestamp();
+        pMsg->timeStampEnd = timestamp();
         pthread_mutex_lock(&pMsg->lock);
         pMsg->status = MSG_STATUS_DONE;
         pthread_cond_signal(&pMsg->jobDoneCondition);
         pthread_mutex_unlock(&pMsg->lock);
+
         WMB;
         printf("process msg, %d\n", pMsg->cmd);
     }
