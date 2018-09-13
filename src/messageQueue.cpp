@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
-//#define __USE_GNU
 #include <sched.h>
 #include <pthread.h>
 #include "common.h"
@@ -83,6 +82,5 @@ struct msg *rcvMsg(struct thread_info *pThreadInfo)
     pFirstMsg = list_first_entry(&pThreadInfo->msgQueueList, struct msg, listMsgQueue);
     list_del(&pFirstMsg->listMsgQueue);
     pthread_mutex_unlock(&pThreadInfo->msgQueueLock);
-    pThreadInfo->jobsDoneNum++;
     return pFirstMsg;
 }

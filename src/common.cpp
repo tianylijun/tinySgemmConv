@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <malloc.h>
-//#define __USE_GNU
 #include <sched.h>
 #include <pthread.h>
 #include "common.h"
@@ -17,7 +16,7 @@ void* tinySgemmMalloc(unsigned size)
 {
     unsigned char* udata = (unsigned char*)malloc(size + sizeof(void*) + MALLOC_MEM_ALIGN);
     if (!udata)
-        return 0;
+        return NULL;
     unsigned char** adata = (unsigned char**)alignPtr((unsigned char**)udata + 1, MALLOC_MEM_ALIGN);
     adata[-1] = udata;
     return adata;

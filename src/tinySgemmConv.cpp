@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <tinySgemmConv.h>
 #include "common.h"
+#include "pack.h"
 #include "innerTinySgemmConv.h"
 #include "thread_server.h"
 #include "messageQueue.h"
@@ -26,9 +27,9 @@ static inline uint32_t getMaxFreqAccordToAffinity(uint32_t affinity, uint32_t *c
 
 int tinySgemmConvInit
 (
-    uint32_t num_threads, 
-    int32_t stack_size, 
-    uint32_t (*affinity)[MAX_CORE_NUMBER], 
+    uint32_t num_threads,
+    int32_t stack_size,
+    uint32_t (*affinity)[MAX_CORE_NUMBER],
     void **pCtx
 )
 {
@@ -146,11 +147,20 @@ int tinySgemmConvInit
         free(pCtxInner);
         return -8;
     }
-
+    ret = pthread_mutex_init(&pCtxInner->threadLock, NULL);
+    if (0 != ret)
+    {
+        printf("%s, %d\n", "pthread_mutex_init(msLock) failed", ret);
+        pthread_mutex_destroy(&pCtxInner->msgPoolLock);
+        free(pThreadInfo);
+        free(pCtxInner);
+        return -8;
+    }
     pMsgPool = msgPoolInit(pCtxInner, MAX_MSGPOOL_NUM);
     if (NULL == pMsgPool)
     {
         printf("%s, %d\n", "msg pool malloc failed", MAX_MSGPOOL_NUM * (uint32_t)sizeof(struct msg));
+        pthread_mutex_destroy(&pCtxInner->threadLock);
         pthread_mutex_destroy(&pCtxInner->msgPoolLock);
         free(pThreadInfo);
         free(pCtxInner);
@@ -164,216 +174,12 @@ int tinySgemmConvInit
     return ret;
 }
 
-
 static inline struct rangeInfo *range(struct rangeInfo *pRange, uint32_t i, uint32_t j)
 {
     if ((NULL != pRange) && (i < pRange->YBlocks) && (j < pRange->XBlocks))
         return pRange + i * pRange->XBlocks + j;
     else
         return NULL;
-}
-
-static struct matricRangeInfo* createMatircRange(void *pA, void *pB, void *pC,
-        uint32_t M, uint32_t N, uint32_t K,
-        float *pBasis, bool bRelu, float *pPRelu,
-        bool bSharedPrelu, enum TINY_SGEMM_CONV_DATA_MODE mode)
-{
-    struct matricRangeInfo *pMatricRangeInfo;
-    uint8_t *pACur, *pBCur, *pCCur;
-    struct rangeInfo *pARange, *pBRange, *pCRange;
-    uint32_t numBlockM = M / TINY_SGEMM_BLOCK_M;
-    uint32_t numBlockN = N / TINY_SGEMM_BLOCK_N;
-    uint32_t numBlockK = K / TINY_SGEMM_BLOCK_K;
-    uint32_t leftM = M % TINY_SGEMM_BLOCK_M;
-    uint32_t leftN = N % TINY_SGEMM_BLOCK_N;
-    uint32_t leftK = K % TINY_SGEMM_BLOCK_K;
-    uint32_t mBlocks = numBlockM + ((0 == leftM)?(0):(1));
-    uint32_t nBlocks = numBlockN + ((0 == leftN)?(0):(1));
-    uint32_t kBlocks = numBlockK + ((0 == leftK)?(0):(1));
-    uint32_t dataTypeSize;
-
-    pMatricRangeInfo = (struct matricRangeInfo *)calloc(1, (mBlocks*kBlocks + kBlocks*nBlocks + mBlocks*nBlocks)*sizeof(struct rangeInfo) + sizeof(struct matricRangeInfo));
-    if (NULL == pMatricRangeInfo)
-    {
-        printf("%s at line: %d %d %d %d\n", "no memory", __LINE__, mBlocks, nBlocks, kBlocks);
-        return NULL;
-    }
-    pARange = (struct rangeInfo *)(pMatricRangeInfo + 1);
-    pBRange = pARange + mBlocks*kBlocks;
-    pCRange = pBRange + kBlocks*nBlocks;
-    pMatricRangeInfo->pARange = pARange;
-    pMatricRangeInfo->pBRange = pBRange;
-    pMatricRangeInfo->pCRange = pCRange;
-
-    if (TINY_SGEMM_CONV_DATA_MODE_A_FIX16_FIX16_B_FP32 == mode)
-        dataTypeSize = sizeof(uint16_t);
-    else if (TINY_SGEMM_CONV_DATA_MODE_A_FIX8_FIX8_B_FP32 != mode)
-        dataTypeSize = sizeof(float);
-    else
-        dataTypeSize = sizeof(uint8_t);
-
-    /* split A */
-    for (uint32_t i = 0; i < mBlocks; ++i)
-    {
-        uint32_t blockH;
-        if (M < (i+1)*TINY_SGEMM_BLOCK_M)
-        {
-            if (0 == i) /* first */
-            {
-                pACur  = (uint8_t*)pA;
-                blockH = M;
-            }
-            else /* last */
-            {
-                pACur  = (uint8_t*)pA + (M - leftM)*K*dataTypeSize;
-                blockH = leftM;
-            }
-        }
-        else
-        {
-            pACur  = (uint8_t*)pA + i*TINY_SGEMM_BLOCK_M*K*dataTypeSize;
-            blockH = TINY_SGEMM_BLOCK_M;
-        }
-
-        for (uint32_t j = 0; j < kBlocks; ++j)
-        {
-            pARange->pStart  = (uint8_t*)pACur + j*TINY_SGEMM_BLOCK_K*dataTypeSize;
-            pARange->XBlocks = kBlocks;
-            pARange->YBlocks = mBlocks;
-            if (K < (j+1)*TINY_SGEMM_BLOCK_K)
-            {
-                if (0 == j) /* first */
-                    pARange->width = K;
-                else /* last */
-                    pARange->width = K - leftK;
-            }
-            else
-                pARange->width    = TINY_SGEMM_BLOCK_K;
-            pARange->height       = blockH;
-            pARange->stride       = K;
-            pARange->dataTypeSize = dataTypeSize;
-            pARange++;
-        }
-    }
-
-    /* split B */
-    dataTypeSize = sizeof(float);
-    for (uint32_t i = 0; i < kBlocks; ++i)
-    {
-        uint32_t blockH;
-        if (K < (i+1)*TINY_SGEMM_BLOCK_K)
-        {
-            if (0 == i) /* first */
-            {
-                pBCur  = (uint8_t*)pB;
-                blockH = K;
-            }
-            else /* last */
-            {
-                pBCur  = (uint8_t*)pB + (K - leftK)*N*dataTypeSize;
-                blockH = leftK;
-            }
-        }
-        else
-        {
-            pBCur  = (uint8_t*)pB + i*TINY_SGEMM_BLOCK_K*N*dataTypeSize;
-            blockH = TINY_SGEMM_BLOCK_K;
-        }
-
-        for (uint32_t j = 0; j < nBlocks; ++j)
-        {
-            pBRange->pStart  = (uint8_t*)pBCur + j*TINY_SGEMM_BLOCK_N*dataTypeSize;
-            pBRange->XBlocks = nBlocks;
-            pBRange->YBlocks = kBlocks;
-            if (N < (j+1)*TINY_SGEMM_BLOCK_N)
-            {
-                if (0 == j) /* first */
-                    pBRange->width = N;
-                else /* last */
-                    pBRange->width = N - leftN;
-            }
-            else
-                pBRange->width    = TINY_SGEMM_BLOCK_N;
-            pBRange->height       = blockH;
-            pBRange->stride       = N;
-            pBRange->dataTypeSize = dataTypeSize;
-            pBRange++;
-        }
-    }
-
-    /* split C */
-    dataTypeSize = sizeof(float);
-    for (uint32_t i = 0; i < mBlocks; ++i)
-    {
-        uint32_t blockH;
-        if (M < (i+1)*TINY_SGEMM_BLOCK_M)
-        {
-            if (0 == i) /* first */
-            {
-                pCCur  = (uint8_t*)pC;
-                blockH = M;
-            }
-            else /* last */
-            {
-                pCCur  = (uint8_t*)pC + (M - leftM)*N*dataTypeSize;
-                blockH = leftM;
-            }
-        }
-        else
-        {
-            pCCur = (uint8_t*)pC + i*TINY_SGEMM_BLOCK_M*N*dataTypeSize;
-            blockH = TINY_SGEMM_BLOCK_M;
-        }
-
-        for (uint32_t j = 0; j < nBlocks; ++j)
-        {
-            pCRange->pStart  = (uint8_t*)pCCur + j*TINY_SGEMM_BLOCK_N*dataTypeSize;
-            pCRange->XBlocks = nBlocks;
-            pCRange->YBlocks = mBlocks;
-            pCRange->runOnlittleCore = 0;
-            if (N < (j+1)*TINY_SGEMM_BLOCK_N)
-            {
-                if (0 == j) /* first */
-                    pCRange->width = N;
-                else /* last */
-                {
-                    pCRange->width = N - leftN;
-                    /* small range can be assigned to little core */
-                    if (pCRange->width*2 < TINY_SGEMM_BLOCK_N)
-                        pCRange->runOnlittleCore = 1;
-                }
-            }
-            else
-                pCRange->width    = TINY_SGEMM_BLOCK_N;
-            pCRange->height       = blockH;
-            pCRange->stride       = N;
-            pCRange->dataTypeSize = dataTypeSize;
-            pCRange->pBasis       = NULL;
-            if (pBasis)
-            {
-                pCRange->pBasis   = pBasis;
-                pBasis            += blockH;
-            }
-            pCRange->bRelu        = bRelu;
-            pCRange->bSharedPrelu = bSharedPrelu;
-            pCRange->pPRelu       = NULL;
-            if (pPRelu)
-            {
-                pCRange->pPRelu   = pPRelu;
-                if (!bSharedPrelu)
-                    pPRelu        += blockH;
-            }
-
-            pCRange++;
-        }
-    }
-
-    return pMatricRangeInfo;
-}
-
-static void tinySgemmConvPackA(void *pA, void *pPackA, uint32_t M, uint32_t K, enum TINY_SGEMM_CONV_DATA_MODE mode)
-{
-     
 }
 
 /* do pack weight & im2col B buffer malloc */
@@ -390,8 +196,8 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     uint32_t M = outChannels;
     uint32_t N = outputH*outputW;
     uint32_t K = inChannels*kernelH*kernelW;
-    uint32_t packBTypeSize, packATypeSize, packBPerThreadSize;
-    void *pIm2colB, *pPackA, *pPackBPerThread;
+    uint32_t i, packBTypeSize, packATypeSize, packBPerThreadSize;
+    uint8_t *pIm2colB, *pPackA, *pPackBPerThread;
     struct tinySgemmInstance *psgemmInstance;
     struct tinySgemmConvCtx *pCtxInner = (struct tinySgemmConvCtx *)pCtx;
 
@@ -408,7 +214,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
         pIm2colB = NULL;
     else
     {
-        pIm2colB = (void *)tinySgemmMalloc(K*N*sizeof(float));
+        pIm2colB = (uint8_t *)tinySgemmMalloc(K*N*sizeof(float));
         if (NULL == pIm2colB)
         {
             printf("%s\n", "im2col buffer null");
@@ -439,8 +245,8 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     }
 
     /* malloc packB & packA buffer */
-    packBPerThreadSize = alignSize(TINY_SGEMM_BLOCK_K*TINY_SGEMM_BLOCK_N*packBTypeSize, MALLOC_MEM_ALIGN);
-    pPackBPerThread = (void *)tinySgemmMalloc(pCtxInner->num_threads*packBPerThreadSize + M*alignSize(K*packATypeSize, MALLOC_MEM_ALIGN));
+    packBPerThreadSize = alignSize(K*TINY_SGEMM_UNIT_N*packBTypeSize, MALLOC_MEM_ALIGN);
+    pPackBPerThread = (uint8_t *)tinySgemmMalloc(pCtxInner->num_threads*packBPerThreadSize + M*K*packATypeSize);
     if (NULL == pPackBPerThread)
     {
         printf("%s\n", "packB buffer malloc failed");
@@ -451,17 +257,20 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
 
     /* do packA */
     pPackA = (uint8_t *)pPackBPerThread + pCtxInner->num_threads*packBPerThreadSize;
-    tinySgemmConvPackA(pWeight, pPackA, M, K, mode);
+    if (sizeof(float) == packATypeSize)
+    {
+        tinySgemmConvPackA4x4_fp32_fp32((float*)pWeight, (float*)pPackA, M, K);
+    }
 
     psgemmInstance->M                  = M;
     psgemmInstance->N                  = N;
     psgemmInstance->K                  = K;
     psgemmInstance->pPackA             = pPackA;
     psgemmInstance->pIm2colB           = pIm2colB;
-    psgemmInstance->pPackBPerThread    = pPackBPerThread;
-    psgemmInstance->packBPerThreadSize = packBPerThreadSize;
+    for (i = 0; i < pCtxInner->num_threads; ++i)
+        psgemmInstance->pPackBPerThread[i] = (uint8_t *)pPackBPerThread + i*packBPerThreadSize;
     psgemmInstance->mode               = mode;
-    psgemmInstance->pCtx               = (struct tinySgemmConvCtx *)pCtx;
+    psgemmInstance->pCtx               = pCtxInner;
 
     return (void*)psgemmInstance;
 }
@@ -478,7 +287,7 @@ int tinySgemmConvReleaseInstance(void *pInstance)
 }
 
 int tinySgemmConv(void *pInstance,
-                  void *pInput, void *pOutput,
+                  void *pInput, float *pOutput,
                   float *pBasis, bool bRelu, float *pPRelu, bool bSharedPrelu,
                   float (*int8Scale)[3],
                   enum TINY_SGEMM_CONV_DATA_MODE mode)
@@ -488,12 +297,33 @@ int tinySgemmConv(void *pInstance,
     struct tinySgemmConvCtx *pCtxInner;
     struct list_head jobsQueue;
     uint32_t M, N, K;
+    uint32_t packBTypeSize, packATypeSize;
     void *pB;
 
     if ((NULL == psgemmInstance) || (NULL == pInput) || (NULL == pOutput))
     {
         printf("%s, %p %p %p\n", "NULL pointer", psgemmInstance, pInput, pOutput);
         return -1;
+    }
+
+    switch(mode)
+    {
+    case TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP16_B_FP32:
+        packBTypeSize = sizeof(uint16_t);
+        packATypeSize = sizeof(uint16_t);
+        break;
+    case TINY_SGEMM_CONV_DATA_MODE_A_FIX16_FIX16_B_FP32:
+        packBTypeSize = sizeof(uint16_t);
+        packATypeSize = sizeof(uint16_t);
+        break;
+    case TINY_SGEMM_CONV_DATA_MODE_A_FIX8_FIX8_B_FP32:
+        packBTypeSize = sizeof(uint8_t);
+        packATypeSize = sizeof(uint8_t);
+        break;
+    default:
+        packBTypeSize = sizeof(float);
+        packATypeSize = sizeof(float);
+        break;
     }
 
     M = psgemmInstance->M;
@@ -515,29 +345,44 @@ int tinySgemmConv(void *pInstance,
     /* wait for all im2col jobs done */
     waitForJobsDone(pCtxInner, &jobsQueue);
 
-    pMarticRangeInfo = createMatircRange(psgemmInstance->pPackA, pB, pOutput, M, N, K, pBasis, bRelu, pPRelu, bSharedPrelu, mode);
-    POINTER_CHECK(pMarticRangeInfo, -3);
-
     /* assign range to threads */
-    for (uint32_t i = 0; i < pMarticRangeInfo->pCRange->YBlocks; ++i)
+    for (uint32_t i = 0; i < N/TINY_SGEMM_UNIT_N; ++i)
     {
-        for (uint32_t j = 0; j < pMarticRangeInfo->pCRange->XBlocks; ++j)
-        {
-            struct msg *pMsg  = fetchMsg(pCtxInner);
-            struct thread_info *pThreadInfo;
-            assert(NULL != pMsg);
-            pMsg->cmd             = THREAD_CMD_SGEMM_WORK;
-            pMsg->pWorkCRange     = pMarticRangeInfo->pCRange + i*pMarticRangeInfo->pCRange->XBlocks + j;
-            if (pMsg->pWorkCRange->runOnlittleCore)
-                pThreadInfo = getMinJobsNumThread(&pCtxInner->bigCoreThreads);
-            else
-                pThreadInfo = getMinJobsNumThread(&pCtxInner->littleCoreThreads);
-            assert(NULL != pThreadInfo);
-            pMsg->pPackBPerThread = (uint8_t*)psgemmInstance->pPackBPerThread + pThreadInfo->index*psgemmInstance->packBPerThreadSize;
-            pMsg->pThreadInfo     = pThreadInfo;
-            sendMsg(pMsg);
-            list_add_tail(&pMsg->listJobsQueue, &jobsQueue);
-        }
+        struct thread_info *pThreadInfo  = getMinJobsNumThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_SGEMM);
+        struct msg *pMsg                 = fetchMsg(pCtxInner);
+        pMsg->pThreadInfo                = pThreadInfo;
+        pMsg->cmd                        = MSG_CMD_SGEMM;
+        pMsg->JobInfo.sgemmInfo.M        = psgemmInstance->M;
+        pMsg->JobInfo.sgemmInfo.N        = psgemmInstance->N;
+        pMsg->JobInfo.sgemmInfo.K        = psgemmInstance->K;
+        pMsg->JobInfo.sgemmInfo.n        = TINY_SGEMM_UNIT_N;
+        pMsg->JobInfo.sgemmInfo.pA       = psgemmInstance->pPackA;
+        pMsg->JobInfo.sgemmInfo.pBIm2col = (uint8_t *)psgemmInstance->pIm2colB + i*TINY_SGEMM_UNIT_N*packBTypeSize;
+        pMsg->JobInfo.sgemmInfo.pC       = pOutput + i*TINY_SGEMM_UNIT_N;
+        pMsg->JobInfo.sgemmInfo.pPackB   = (uint8_t*)psgemmInstance->pPackBPerThread + pThreadInfo->index*psgemmInstance->packBPerThreadSize;
+
+        sendMsg(pMsg);
+        list_add_tail(&pMsg->listJobsQueue, &jobsQueue);
+    }
+
+    /* follow Jobs can be assigned to little core */
+    if (0 != (N%TINY_SGEMM_UNIT_N))
+    {
+        struct thread_info *pThreadInfo  = getMinJobsNumThread(pCtxInner, &pCtxInner->littleCoreThreads, MSG_CMD_SGEMM);
+        struct msg *pMsg                 = fetchMsg(pCtxInner);
+        pMsg->pThreadInfo                = pThreadInfo;
+        pMsg->cmd                        = MSG_CMD_SGEMM;
+        pMsg->JobInfo.sgemmInfo.M        = psgemmInstance->M;
+        pMsg->JobInfo.sgemmInfo.N        = psgemmInstance->N;
+        pMsg->JobInfo.sgemmInfo.K        = psgemmInstance->K;
+        pMsg->JobInfo.sgemmInfo.n        = N%TINY_SGEMM_UNIT_N;
+        pMsg->JobInfo.sgemmInfo.pA       = psgemmInstance->pPackA;
+        pMsg->JobInfo.sgemmInfo.pBIm2col = (uint8_t *)psgemmInstance->pIm2colB + (N/TINY_SGEMM_UNIT_N)*TINY_SGEMM_UNIT_N*packBTypeSize;
+        pMsg->JobInfo.sgemmInfo.pC       = pOutput + (N/TINY_SGEMM_UNIT_N)*TINY_SGEMM_UNIT_N;
+        pMsg->JobInfo.sgemmInfo.pPackB   = psgemmInstance->pPackBPerThread[pThreadInfo->index];
+
+        sendMsg(pMsg);
+        list_add_tail(&pMsg->listJobsQueue, &jobsQueue);
     }
 
     /* wait for all sgemm jobs done */
@@ -558,7 +403,7 @@ int tinySgemmConvDeinit(void *pCtx)
     {
         struct msg *pMsg = (struct msg *)fetchMsg(pCtxInner);
         assert(NULL != pMsg);
-        pMsg->cmd         = THREAD_CMD_EXIT;
+        pMsg->cmd         = MSG_CMD_EXIT;
         pMsg->pThreadInfo = &pCtxInner->pThreadInfo[i];
         sendMsg(pMsg);
         list_add_tail(&pMsg->listJobsQueue, &jobsQueue);
@@ -571,7 +416,8 @@ int tinySgemmConvDeinit(void *pCtx)
         pthread_mutex_destroy(&pCtxInner->pThreadInfo[i].msgQueueLock);
         pthread_cond_destroy(&pCtxInner->pThreadInfo[i].msgQueueNoEmpty);
     }
-
+    pthread_mutex_destroy(&pCtxInner->msgPoolLock);
+    pthread_mutex_destroy(&pCtxInner->threadLock);
     free(pCtxInner->pThreadInfo);
     msgPoolDeInit(pCtxInner);
     free(pCtxInner);

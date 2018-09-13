@@ -26,7 +26,7 @@
 
 #define TINY_SGEMM_UNIT_M (4)
 #define TINY_SGEMM_UNIT_K (4)
-#define TINY_SGEMM_UNIT_N (8)
+#define TINY_SGEMM_UNIT_N (12)
 
 #ifndef TINY_SGEMM_BLOCK_M
 #define TINY_SGEMM_BLOCK_M (128)

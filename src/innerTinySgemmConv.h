@@ -29,13 +29,6 @@ struct matricRangeInfo
     struct rangeInfo *pCRange;
 };
 
-enum THREAD_CMD
-{
-    THREAD_CMD_EXIT,
-    THREAD_CMD_SGEMM_WORK,
-    THREAD_CMD_IM2COL_WORK
-};
-
 struct thread_info
 {
     uint32_t index;
@@ -48,7 +41,8 @@ struct thread_info
     uint32_t affinity;
     void *sgemmCtx;
     struct list_head biglittlecorelist;
-    uint64_t jobsDoneNum;
+    uint64_t sgemmJobsDoneNum;
+    uint64_t im2colJobsDoneNum;
 };
 
 struct tinySgemmConvCtx
@@ -56,6 +50,7 @@ struct tinySgemmConvCtx
     uint32_t num_threads;
     struct thread_info *pThreadInfo;
     pthread_mutex_t msgPoolLock;
+    pthread_mutex_t threadLock;
     struct msg *pMsgPool;
     struct list_head msgPoolList;
     struct list_head bigCoreThreads;
@@ -64,9 +59,9 @@ struct tinySgemmConvCtx
 
 struct tinySgemmInstance
 {
-    void *pPackA;
+    uint8_t *pPackA;
     void *pIm2colB;
-    void *pPackBPerThread;
+    uint8_t *pPackBPerThread[MAX_CORE_NUMBER];
     uint32_t M;
     uint32_t N;
     uint32_t K;

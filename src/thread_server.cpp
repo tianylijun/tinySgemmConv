@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <assert.h>
-//#define __USE_GNU
 #include <sched.h>
 #include <pthread.h>
 #include "common.h"
@@ -94,22 +93,40 @@ void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *workQueue)
     }
 }
 
-struct thread_info *getMinJobsNumThread(struct list_head *pHead)
+struct thread_info *getMinJobsNumThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
 {
     struct thread_info *pThreadInfoRet = NULL;
     uint64_t minJobsDoneNum = 0xffffffffffffffff;
     struct list_head *pos;
     assert(NULL != pHead);
+
+    pthread_mutex_lock(&pCtx->threadLock);
     list_for_each(pos, pHead)
     {
         struct thread_info *pThreadInfo = list_entry(pos, struct thread_info, biglittlecorelist);
-        if (pThreadInfo->jobsDoneNum < minJobsDoneNum)
+        if (MSG_CMD_SGEMM == cmd)
         {
-            minJobsDoneNum = pThreadInfo->jobsDoneNum;
-            pThreadInfoRet = pThreadInfo;
+            if (pThreadInfo->sgemmJobsDoneNum < minJobsDoneNum)
+            {
+                minJobsDoneNum = pThreadInfo->sgemmJobsDoneNum;
+                pThreadInfoRet = pThreadInfo;
+            }
+        }
+        else if (MSG_CMD_IM2COL == cmd)
+        {
+            if (pThreadInfo->im2colJobsDoneNum < minJobsDoneNum)
+            {
+                minJobsDoneNum = pThreadInfo->im2colJobsDoneNum;
+                pThreadInfoRet = pThreadInfo;
+            }
         }
     }
 
+    if (MSG_CMD_SGEMM == cmd)
+        pThreadInfoRet->sgemmJobsDoneNum++;
+    else if (MSG_CMD_IM2COL == cmd)
+        pThreadInfoRet->im2colJobsDoneNum++;
+    pthread_mutex_unlock(&pCtx->threadLock);
     return pThreadInfoRet;
 }
 
@@ -189,15 +206,15 @@ void * sgemm_thread_process(void *args)
         pMsg->timeStampBeg = timestamp();
         switch(pMsg->cmd)
         {
-        case THREAD_CMD_SGEMM_WORK:
+        case MSG_CMD_SGEMM:
             /* call sgemm top finish the job */
 
             break;
-        case THREAD_CMD_IM2COL_WORK:
+        case MSG_CMD_IM2COL:
             /* call inm2col to finish the job */
 
             break;
-        case THREAD_CMD_EXIT:
+        case MSG_CMD_EXIT:
             deadloop = 0;
             /* clear msg queue */
             INIT_LIST_HEAD(&pThreadInfo->msgQueueList);

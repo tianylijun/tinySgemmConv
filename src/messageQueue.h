@@ -13,14 +13,50 @@ enum MSG_STATUS
     MSG_STATUS_DONE
 };
 
+enum MSG_CMD
+{
+    MSG_CMD_EXIT,
+    MSG_CMD_SGEMM,
+    MSG_CMD_IM2COL
+};
+
+struct sgemmJobInfo
+{
+    uint8_t *pA;
+    uint8_t *pBIm2col;
+    float *pC;
+    uint8_t *pPackB;
+    uint32_t M;
+    uint32_t N;
+    uint32_t K;
+    uint32_t n;
+};
+
+struct im2colJobInfo
+{
+    float *pB;
+    float *pBIm2col;
+    uint32_t kernelW;
+    uint32_t kernelH;
+    uint32_t kernelStrideW;
+    uint32_t kernelStrideH;
+    uint32_t kernelPadW;
+    uint32_t kernelPadH;
+    uint32_t kernelDilateW;
+    uint32_t kernelDilateH;
+};
+
 struct msg
 {
-    uint32_t cmd;
+    enum MSG_CMD cmd;
     uint64_t sequenceId;
     enum MSG_STATUS status;
     struct thread_info *pThreadInfo;
-    struct rangeInfo *pWorkCRange;
-    void *pPackBPerThread;
+    union
+    {
+        struct sgemmJobInfo sgemmInfo;
+        struct im2colJobInfo im2colInfo;
+    } JobInfo;
     pthread_mutex_t lock;
     pthread_cond_t jobDoneCondition;
     struct list_head listMsgQueue;
