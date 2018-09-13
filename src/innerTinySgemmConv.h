@@ -60,12 +60,23 @@ struct tinySgemmConvCtx
 struct tinySgemmInstance
 {
     uint8_t *pPackA;
-    void *pIm2colB;
+    uint8_t *pIm2colB;
     uint8_t *pPackBPerThread[MAX_CORE_NUMBER];
     uint32_t M;
     uint32_t N;
     uint32_t K;
-    uint32_t packBPerThreadSize;
+    uint32_t inChannels;
+    uint32_t inputH;
+    uint32_t inputW;
+    uint32_t outChannels;
+    uint32_t kernelH;
+    uint32_t kernelW;
+    uint32_t padH;
+    uint32_t padW;
+    uint32_t strideH;
+    uint32_t strideW;
+    uint32_t dilateH;
+    uint32_t dilateW;
     enum TINY_SGEMM_CONV_DATA_MODE mode;
     struct tinySgemmConvCtx *pCtx;
 };

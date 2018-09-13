@@ -265,6 +265,18 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     psgemmInstance->M                  = M;
     psgemmInstance->N                  = N;
     psgemmInstance->K                  = K;
+    psgemmInstance->inChannels         = inChannels;
+    psgemmInstance->inputH             = inputH;
+    psgemmInstance->inputW             = inputW;
+    psgemmInstance->outChannels        = outChannels;
+    psgemmInstance->kernelH            = kernelH;
+    psgemmInstance->kernelW            = kernelW;
+    psgemmInstance->padH               = padH;
+    psgemmInstance->padW               = padW;
+    psgemmInstance->strideH            = strideH;
+    psgemmInstance->strideW            = strideW;
+    psgemmInstance->dilateH            = dilateH;
+    psgemmInstance->dilateW            = dilateW;
     psgemmInstance->pPackA             = pPackA;
     psgemmInstance->pIm2colB           = pIm2colB;
     for (i = 0; i < pCtxInner->num_threads; ++i)
@@ -287,42 +299,48 @@ int tinySgemmConvReleaseInstance(void *pInstance)
 }
 
 int tinySgemmConv(void *pInstance,
-                  void *pInput, float *pOutput,
+                  float *pInput, float *pOutput,
                   float *pBasis, bool bRelu, float *pPRelu, bool bSharedPrelu,
                   float (*int8Scale)[3],
                   enum TINY_SGEMM_CONV_DATA_MODE mode)
 {
     struct matricRangeInfo* pMarticRangeInfo;
-    struct tinySgemmInstance *psgemmInstance = (struct tinySgemmInstance *)pInstance;
+    struct tinySgemmInstance *psgemmInstance;
     struct tinySgemmConvCtx *pCtxInner;
     struct list_head jobsQueue;
-    uint32_t M, N, K;
-    uint32_t packBTypeSize, packATypeSize;
-    void *pB;
+    uint32_t i, M, N, K, packBTypeSize;
+    enum DataType im2colType, inType;
+    uint32_t blockN = N/TINY_SGEMM_UNIT_N;
+    uint32_t leftN  = N%TINY_SGEMM_UNIT_N;
 
-    if ((NULL == psgemmInstance) || (NULL == pInput) || (NULL == pOutput))
+    if ((NULL == pInstance) || (NULL == pInput) || (NULL == pOutput))
     {
-        printf("%s, %p %p %p\n", "NULL pointer", psgemmInstance, pInput, pOutput);
+        printf("%s, %p %p %p\n", "NULL pointer", pInstance, pInput, pOutput);
         return -1;
     }
 
+    psgemmInstance = (struct tinySgemmInstance *)pInstance;
     switch(mode)
     {
     case TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP16_B_FP32:
         packBTypeSize = sizeof(uint16_t);
-        packATypeSize = sizeof(uint16_t);
+        inType        = FLOAT16_TYPE;
+        im2colType    = FLOAT16_TYPE;
         break;
     case TINY_SGEMM_CONV_DATA_MODE_A_FIX16_FIX16_B_FP32:
         packBTypeSize = sizeof(uint16_t);
-        packATypeSize = sizeof(uint16_t);
+        inType        = INT16_TYPE;
+        im2colType    = INT16_TYPE;
         break;
     case TINY_SGEMM_CONV_DATA_MODE_A_FIX8_FIX8_B_FP32:
         packBTypeSize = sizeof(uint8_t);
-        packATypeSize = sizeof(uint8_t);
+        inType        = INT8_TYPE;
+        im2colType    = INT8_TYPE;
         break;
     default:
         packBTypeSize = sizeof(float);
-        packATypeSize = sizeof(float);
+        inType        = FLOAT32_TYPE;
+        im2colType    = FLOAT32_TYPE;
         break;
     }
 
@@ -333,20 +351,40 @@ int tinySgemmConv(void *pInstance,
     POINTER_CHECK(pCtxInner, -2);
 
     INIT_LIST_HEAD(&jobsQueue);
-    if (NULL != psgemmInstance->pIm2colB)
-    {
-        /* TODO: do im2col mutithread */
 
-        pB = psgemmInstance->pIm2colB;
+    if (NULL == psgemmInstance->pIm2colB)
+    {
+        psgemmInstance->pIm2colB = (uint8_t *)pInput;
+        im2colType               = FLOAT32_TYPE;
+        packBTypeSize            = sizeof(float);
     }
     else
-        pB = pInput;
+    {
+        for (i = 0; i < psgemmInstance->inChannels; ++i)
+        {
+            struct thread_info *pThreadInfo   = getMinJobsNumThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_SGEMM);
+            struct msg *pMsg                  = fetchMsg(pCtxInner);
+            pMsg->pThreadInfo                 = pThreadInfo;
+            pMsg->cmd                         = MSG_CMD_IM2COL;
+            pMsg->JobInfo.im2colInfo.kernelH  = psgemmInstance->kernelH;
+            pMsg->JobInfo.im2colInfo.kernelW  = psgemmInstance->kernelW;
+            pMsg->JobInfo.im2colInfo.strideH  = psgemmInstance->strideH;
+            pMsg->JobInfo.im2colInfo.strideW  = psgemmInstance->strideW;
+            pMsg->JobInfo.im2colInfo.padH     = psgemmInstance->padH;
+            pMsg->JobInfo.im2colInfo.padW     = psgemmInstance->padW;
+            pMsg->JobInfo.im2colInfo.dilateH  = psgemmInstance->dilateH;
+            pMsg->JobInfo.im2colInfo.dilateW  = psgemmInstance->dilateW;
+            pMsg->JobInfo.im2colInfo.outType  = im2colType;
+            pMsg->JobInfo.im2colInfo.pB       = pInput + i*psgemmInstance->inputH*psgemmInstance->inputW;
+            pMsg->JobInfo.im2colInfo.pBIm2col = psgemmInstance->pIm2colB + i*psgemmInstance->kernelH*psgemmInstance->kernelW*N*packBTypeSize;
 
-    /* wait for all im2col jobs done */
-    waitForJobsDone(pCtxInner, &jobsQueue);
+            sendMsg(pMsg);
+            list_add_tail(&pMsg->listJobsQueue, &jobsQueue);
+        }
+        waitForJobsDone(pCtxInner, &jobsQueue);
+    }
 
-    /* assign range to threads */
-    for (uint32_t i = 0; i < N/TINY_SGEMM_UNIT_N; ++i)
+    for (i = 0; i < blockN; ++i)
     {
         struct thread_info *pThreadInfo  = getMinJobsNumThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_SGEMM);
         struct msg *pMsg                 = fetchMsg(pCtxInner);
@@ -359,14 +397,15 @@ int tinySgemmConv(void *pInstance,
         pMsg->JobInfo.sgemmInfo.pA       = psgemmInstance->pPackA;
         pMsg->JobInfo.sgemmInfo.pBIm2col = (uint8_t *)psgemmInstance->pIm2colB + i*TINY_SGEMM_UNIT_N*packBTypeSize;
         pMsg->JobInfo.sgemmInfo.pC       = pOutput + i*TINY_SGEMM_UNIT_N;
-        pMsg->JobInfo.sgemmInfo.pPackB   = (uint8_t*)psgemmInstance->pPackBPerThread + pThreadInfo->index*psgemmInstance->packBPerThreadSize;
+        pMsg->JobInfo.sgemmInfo.pPackB   = psgemmInstance->pPackBPerThread[pThreadInfo->index];
+        pMsg->JobInfo.sgemmInfo.inAType  = inType;
+        pMsg->JobInfo.sgemmInfo.inBType  = im2colType;
 
         sendMsg(pMsg);
         list_add_tail(&pMsg->listJobsQueue, &jobsQueue);
     }
 
-    /* follow Jobs can be assigned to little core */
-    if (0 != (N%TINY_SGEMM_UNIT_N))
+    if (0 != leftN)
     {
         struct thread_info *pThreadInfo  = getMinJobsNumThread(pCtxInner, &pCtxInner->littleCoreThreads, MSG_CMD_SGEMM);
         struct msg *pMsg                 = fetchMsg(pCtxInner);
@@ -380,14 +419,14 @@ int tinySgemmConv(void *pInstance,
         pMsg->JobInfo.sgemmInfo.pBIm2col = (uint8_t *)psgemmInstance->pIm2colB + (N/TINY_SGEMM_UNIT_N)*TINY_SGEMM_UNIT_N*packBTypeSize;
         pMsg->JobInfo.sgemmInfo.pC       = pOutput + (N/TINY_SGEMM_UNIT_N)*TINY_SGEMM_UNIT_N;
         pMsg->JobInfo.sgemmInfo.pPackB   = psgemmInstance->pPackBPerThread[pThreadInfo->index];
+        pMsg->JobInfo.sgemmInfo.inAType  = inType;
+        pMsg->JobInfo.sgemmInfo.inBType  = im2colType;
 
         sendMsg(pMsg);
         list_add_tail(&pMsg->listJobsQueue, &jobsQueue);
     }
 
-    /* wait for all sgemm jobs done */
     waitForJobsDone(pCtxInner, &jobsQueue);
-    free(pMarticRangeInfo);
     return 0;
 }
 

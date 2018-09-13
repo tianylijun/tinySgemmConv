@@ -20,6 +20,14 @@ enum MSG_CMD
     MSG_CMD_IM2COL
 };
 
+enum DataType
+{
+    FLOAT32_TYPE,
+    FLOAT16_TYPE,
+    INT16_TYPE,
+    INT8_TYPE
+};
+
 struct sgemmJobInfo
 {
     uint8_t *pA;
@@ -30,20 +38,23 @@ struct sgemmJobInfo
     uint32_t N;
     uint32_t K;
     uint32_t n;
+    enum DataType inAType;
+    enum DataType inBType;
 };
 
 struct im2colJobInfo
 {
     float *pB;
-    float *pBIm2col;
+    uint8_t *pBIm2col;
     uint32_t kernelW;
     uint32_t kernelH;
-    uint32_t kernelStrideW;
-    uint32_t kernelStrideH;
-    uint32_t kernelPadW;
-    uint32_t kernelPadH;
-    uint32_t kernelDilateW;
-    uint32_t kernelDilateH;
+    uint32_t strideW;
+    uint32_t strideH;
+    uint32_t padW;
+    uint32_t padH;
+    uint32_t dilateW;
+    uint32_t dilateH;
+    enum DataType outType;
 };
 
 struct msg
