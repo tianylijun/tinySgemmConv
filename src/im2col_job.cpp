@@ -13,7 +13,12 @@ void im2col_cpu_reduce(const float* pInput, const int channels,
     int channel, kh, kw, i;
     const int output_h = height - kernel_h + 1;
     const int output_w = width  - kernel_w + 1;
-
+    (void)pad_h;
+    (void)pad_w;
+    (void)stride_h;
+    (void)stride_w;
+    (void)dilation_h;
+    (void)dilation_w;
     for (channel = 0; channel < channels; channel++)
     {
         const float* data_im_channel  = pInput  + channel*height*width;

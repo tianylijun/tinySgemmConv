@@ -136,10 +136,7 @@ void * sgemm_thread_process(void *args)
     cpu_set_t mask;
     uint32_t i = 0, availCores = 0, realWorkCores = 0, deadloop = 1;
     struct thread_info *pThreadInfo = (struct thread_info *)args;
-    struct tinySgemmConvCtx *pCtx;
     POINTER_CHECK(pThreadInfo, NULL);
-    pCtx =  (struct tinySgemmConvCtx *)pThreadInfo->sgemmCtx;
-    POINTER_CHECK(pCtx, NULL);
     availCores = sysconf(_SC_NPROCESSORS_CONF);
     realWorkCores = T_MIN(availCores, MAX_CORE_NUMBER);
 

@@ -53,6 +53,16 @@ static inline unsigned long timestamp(void)
     return (unsigned long)tv.tv_sec * 1000000ul + tv.tv_usec;
 }
 
+#define TIME_STASTIC_ENABLE
+#ifdef TIME_STASTIC_ENABLE
+#define TIME_STAMP_BEG(beg) unsigned long beg = timestamp();
+#define TIME_STAMP_END(beg, end, desc) unsigned long end = timestamp(); \
+printf("%s cost time %lu us\n", desc, end - beg);
+#else
+#define TIME_STAMP_BEG(beg)
+#define TIME_STAMP_END(beg, end, desc)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

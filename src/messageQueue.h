@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <pthread.h>
 #include "list.h"
-#include "innerTinySgemmConv.h"
 
 enum MSG_STATUS
 {
@@ -20,7 +19,7 @@ enum MSG_CMD
     MSG_CMD_IM2COL
 };
 
-enum DataType
+enum SGEMM_DataType
 {
     FLOAT32_TYPE,
     FLOAT16_TYPE,
@@ -38,8 +37,8 @@ struct sgemmJobInfo
     uint32_t N;
     uint32_t K;
     uint32_t n;
-    enum DataType inAType;
-    enum DataType inBType;
+    enum SGEMM_DataType packADataType;
+    enum SGEMM_DataType packBDataType;
 };
 
 struct im2colJobInfo
@@ -54,7 +53,7 @@ struct im2colJobInfo
     uint32_t padH;
     uint32_t dilateW;
     uint32_t dilateH;
-    enum DataType outType;
+    enum SGEMM_DataType outType;
 };
 
 struct msg

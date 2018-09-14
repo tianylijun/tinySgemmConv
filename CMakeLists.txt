@@ -22,10 +22,8 @@ endif()
 
 set(CMAKE_BUILD_TYPE Release)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wno-unused-function -Wno-unused-parameter")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Ofast")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffast-math")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden -frtti")
+add_definitions(-Wall -Wextra -Ofast -ffast-math -fvisibility=hidden -fvisibility-inlines-hidden -frtti -Wno-uninitialized -Wno-unused-parameter)
+
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 message(STATUS "compile use clang")
 

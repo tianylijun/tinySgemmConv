@@ -7,6 +7,7 @@
 #include "common.h"
 #include "list.h"
 #include "messageQueue.h"
+#include "innerTinySgemmConv.h"
 
 static uint64_t msgSequence = 0;
 
