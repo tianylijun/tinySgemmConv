@@ -192,7 +192,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     uint32_t N = outputH*outputW;
     uint32_t K = inChannels*kernelH*kernelW;
     struct tinySgemmConvCtx *pCtxInner = (struct tinySgemmConvCtx *)pCtx;
- 
+
     POINTER_CHECK(pCtx, NULL);
     POINTER_CHECK(pWeight, NULL);
 
@@ -258,15 +258,15 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     pPackA = (uint8_t *)pPackB + pCtxInner->num_threads*packBSize;
     switch(packADataType)
     {
-        case FLOAT32_TYPE:
+    case FLOAT32_TYPE:
         tinySgemmConvPackA4x4_fp32_fp32((float*)pWeight, (float*)pPackA, M, K);
         break;
-        case FLOAT16_TYPE:
+    case FLOAT16_TYPE:
         //tinySgemmConvPackA4x4_fp32_fp16((float*)pWeight, (float*)pPackA, M, K);
         break;
-        case INT16_TYPE:
+    case INT16_TYPE:
         break;
-        case INT8_TYPE:
+    case INT8_TYPE:
         break;
     }
 
@@ -377,7 +377,7 @@ int tinySgemmConv(void *pInstance,
 
         TIME_STAMP_END(beg, end, "im2col");
     }
-    
+
     TIME_STAMP_BEG(beg);
     for (i = 0; i < blockN; ++i)
     {
