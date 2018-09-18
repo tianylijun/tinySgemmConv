@@ -208,30 +208,38 @@ void * sgemm_thread_process(void *args)
             if (TINY_SGEMM_UNIT_N == pMsg->JobInfo.sgemmInfo.n)
             {
                 /* do  TINY_SGEMM_UNIT_M * K * TINY_SGEMM_UNIT_N */
+                /* packB K*TINY_SGEMM_UNIT_N */
+
+                /* do sgemm */
             }
             else
             {
                 /* do  TINY_SGEMM_UNIT_M * K * leftN */
                 uint32_t leftN = pMsg->JobInfo.sgemmInfo.n;
-                if (leftN > 8)
+                uint32_t leftNDiv8 = leftN>>3;
+                uint32_t leftNHas4 = (leftN>>2)&1;
+                uint32_t leftNHas2 = (leftN>>1)&1;
+                uint32_t leftNHas1 = leftN&1;
+
+                /* packB K*leftN */
+
+                /* do sgemm */
+                for (uint32_t i = 0; i < leftNDiv8; ++i)
                 {
                     /* code */
-                    leftN -= 8;
                 }
 
-                if (leftN > 4)
+                if (leftNHas4)
+                {
+
+                }
+
+                if (leftNHas2)
                 {
                     /* code */
-                    leftN -= 4;
                 }
 
-                if (leftN > 2)
-                {
-                    /* code */
-                    leftN -= 2;
-                }
-
-                if (leftN > 1)
+                if (leftNHas1)
                 {
                     /* code */
                 }
