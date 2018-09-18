@@ -196,6 +196,22 @@ static inline float32x4x4_t vld1q_f32_x4(const void* address)
     result.val[3] = vld1q_f32((const float32_t*) address + 12);
     return result;
 }
+static inline float32x2x4_t vld1_f32_x4(const void* address)
+{
+    float32x2x4_t result;
+    result.val[0] = vld1_f32((const float32_t*) address);
+    result.val[1] = vld1_f32((const float32_t*) address + 2);
+    result.val[2] = vld1_f32((const float32_t*) address + 4);
+    result.val[3] = vld1_f32((const float32_t*) address + 6);
+    return result;
+}
+static inline float32x2x2_t vld1_f32_x2(const void* address)
+{
+    float32x2x2_t result;
+    result.val[0] = vld1_f32((const float32_t*) address);
+    result.val[1] = vld1_f32((const float32_t*) address + 2);
+    return result;
+}
 static inline float32x4x3_t vld1q_f32_x3(const void* address)
 {
     float32x4x3_t result;
@@ -209,15 +225,6 @@ static inline float32x4x2_t vld1q_f32_x2(const void* address)
     float32x4x2_t result;
     result.val[0] = vld1q_f32((const float32_t*) address);
     result.val[1] = vld1q_f32((const float32_t*) address + 4);
-    return result;
-}
-static inline float32x2x4_t vld1_f32_x2(const void* address)
-{
-    float32x2x4_t result;
-    result.val[0] = vld1_f32((const float32_t*) address);
-    result.val[1] = vld1_f32((const float32_t*) address + 4);
-    result.val[2] = vld1_f32((const float32_t*) address + 8);
-    result.val[3] = vld1_f32((const float32_t*) address + 12);
     return result;
 }
 static inline float16x8x2_t vld1q_f16_x2(const void* address)

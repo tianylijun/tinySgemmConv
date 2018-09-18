@@ -205,7 +205,37 @@ void * sgemm_thread_process(void *args)
         {
         case MSG_CMD_SGEMM:
             /* call sgemm top finish the job */
+            if (TINY_SGEMM_UNIT_N == pMsg->JobInfo.sgemmInfo.n)
+            {
+                /* do  TINY_SGEMM_UNIT_M * K * TINY_SGEMM_UNIT_N */
+            }
+            else
+            {
+                /* do  TINY_SGEMM_UNIT_M * K * leftN */
+                uint32_t leftN = pMsg->JobInfo.sgemmInfo.n;
+                if (leftN > 8)
+                {
+                    /* code */
+                    leftN -= 8;
+                }
 
+                if (leftN > 4)
+                {
+                    /* code */
+                    leftN -= 4;
+                }
+
+                if (leftN > 2)
+                {
+                    /* code */
+                    leftN -= 2;
+                }
+
+                if (leftN > 1)
+                {
+                    /* code */
+                }
+            }
             break;
         case MSG_CMD_IM2COL:
             /* call inm2col to finish the job */
