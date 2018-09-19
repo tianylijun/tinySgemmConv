@@ -1,3 +1,20 @@
+/*
+ * Copyright (C) 2018 tianylijun@163.com. All rights reserved.
+ *
+ * Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ *
+ * https://opensource.org/licenses/BSD-3-Clause
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ * Contributors:
+ *     Lee (tianylijun@163.com)
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,7 +24,7 @@
 #include "common.h"
 #include "thread_server.h"
 #include "list.h"
-#include "jobs.h"
+#include "im2col.h"
 #include "messageQueue.h"
 #include "sgemm.h"
 #include "pack.h"
@@ -257,8 +274,8 @@ void * sgemm_thread_process(void *args)
                 uint32_t NHas16, NHas8, NHas4, NHas2, NHas1, K, N;
                 N      = pMsg->JobInfo.sgemmInfo.N;
                 K      = pMsg->JobInfo.sgemmInfo.K;
-                NHas16 = (N>>2)&1;
-                NHas8  = (N>>2)&1;
+                NHas16 = (N>>4)&1;
+                NHas8  = (N>>3)&1;
                 NHas4  = (N>>2)&1;
                 NHas2  = (N>>1)&1;
                 NHas1  = N&1;
