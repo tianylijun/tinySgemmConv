@@ -208,9 +208,24 @@ void * sgemm_thread_process(void *args)
             if (TINY_SGEMM_UNIT_N == pMsg->JobInfo.sgemmInfo.n)
             {
                 /* do  TINY_SGEMM_UNIT_M * K * TINY_SGEMM_UNIT_N */
-                /* packB K*TINY_SGEMM_UNIT_N */
+                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+                {
+                    /* packB K*TINY_SGEMM_UNIT_N */
 
-                /* do sgemm */
+                    /* do sgemm */
+                }
+                else if (FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+                {
+                    /* code */
+                }
+                else if (INT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && INT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+                {
+                    /* code */
+                }
+                else if (INT8_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && INT8_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+                {
+                    /* code */
+                }
             }
             else
             {
@@ -221,25 +236,40 @@ void * sgemm_thread_process(void *args)
                 uint32_t leftNHas2 = (leftN>>1)&1;
                 uint32_t leftNHas1 = leftN&1;
 
-                /* packB K*leftN */
+                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+                {
+                    /* packB K*leftN */
 
-                /* do sgemm */
-                for (uint32_t i = 0; i < leftNDiv8; ++i)
+                    /* do sgemm */
+                    for (uint32_t i = 0; i < leftNDiv8; ++i)
+                    {
+                        /* code */
+                    }
+
+                    if (leftNHas4)
+                    {
+
+                    }
+
+                    if (leftNHas2)
+                    {
+                        /* code */
+                    }
+
+                    if (leftNHas1)
+                    {
+                        /* code */
+                    }
+                }
+                else if (FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
                     /* code */
                 }
-
-                if (leftNHas4)
-                {
-
-                }
-
-                if (leftNHas2)
+                else if (INT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && INT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
                     /* code */
                 }
-
-                if (leftNHas1)
+                else if (INT8_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && INT8_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
                     /* code */
                 }
