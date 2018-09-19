@@ -9,6 +9,8 @@
 #include "list.h"
 #include "jobs.h"
 #include "messageQueue.h"
+#include "sgemm.h"
+#include "pack.h"
 
 #ifdef DEBUG_AFFINETY
 static void showAffinty(struct thread_info *pThreadInfo)
@@ -211,8 +213,31 @@ void * sgemm_thread_process(void *args)
                 if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
                     /* packB K*TINY_SGEMM_UNIT_N */
+                    tinySgemmConvPackBUnitN_fp32_fp32((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
 
                     /* do sgemm */
+                    if (24 == TINY_SGEMM_UNIT_N)
+                        sgemmMxKx24_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                          pMsg->JobInfo.sgemmInfo.pC,
+                                          pMsg->JobInfo.sgemmInfo.M,
+                                          pMsg->JobInfo.sgemmInfo.N,
+                                          pMsg->JobInfo.sgemmInfo.K,
+                                          pMsg->JobInfo.sgemmInfo.bRelu,
+                                          pMsg->JobInfo.sgemmInfo.pPrelu,
+                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                                          pMsg->JobInfo.sgemmInfo.pBasis);
+                    else
+                        sgemmMxKx12_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                          pMsg->JobInfo.sgemmInfo.pC,
+                                          pMsg->JobInfo.sgemmInfo.M,
+                                          pMsg->JobInfo.sgemmInfo.N,
+                                          pMsg->JobInfo.sgemmInfo.K,
+                                          pMsg->JobInfo.sgemmInfo.bRelu,
+                                          pMsg->JobInfo.sgemmInfo.pPrelu,
+                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                                          pMsg->JobInfo.sgemmInfo.pBasis);
                 }
                 else if (FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
@@ -229,36 +254,98 @@ void * sgemm_thread_process(void *args)
             }
             else
             {
-                /* do  TINY_SGEMM_UNIT_M * K * leftN */
-                uint32_t leftN = pMsg->JobInfo.sgemmInfo.n;
-                uint32_t leftNDiv8 = leftN>>3;
-                uint32_t leftNHas4 = (leftN>>2)&1;
-                uint32_t leftNHas2 = (leftN>>1)&1;
-                uint32_t leftNHas1 = leftN&1;
+                uint32_t NHas16, NHas8, NHas4, NHas2, NHas1, K, N;
+                N      = pMsg->JobInfo.sgemmInfo.N;
+                K      = pMsg->JobInfo.sgemmInfo.K;
+                NHas16 = (N>>2)&1;
+                NHas8  = (N>>2)&1;
+                NHas4  = (N>>2)&1;
+                NHas2  = (N>>1)&1;
+                NHas1  = N&1;
 
+                /* do  TINY_SGEMM_UNIT_M * K * leftN */
                 if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
                     /* packB K*leftN */
+                    tinySgemmConvPackBLeftN_fp32_fp32((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
 
                     /* do sgemm */
-                    for (uint32_t i = 0; i < leftNDiv8; ++i)
+                    if (NHas16)
                     {
-                        /* code */
+                        sgemmMxKx16_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                          pMsg->JobInfo.sgemmInfo.pC,
+                                          pMsg->JobInfo.sgemmInfo.M,
+                                          pMsg->JobInfo.sgemmInfo.N,
+                                          pMsg->JobInfo.sgemmInfo.K,
+                                          pMsg->JobInfo.sgemmInfo.bRelu,
+                                          pMsg->JobInfo.sgemmInfo.pPrelu,
+                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                                          pMsg->JobInfo.sgemmInfo.pBasis);
+                        pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 16*K);
+                        pMsg->JobInfo.sgemmInfo.pC += 16;
                     }
 
-                    if (leftNHas4)
+                    if (NHas8)
                     {
-
+                        sgemmMxKx8_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                                         (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                         pMsg->JobInfo.sgemmInfo.pC,
+                                         pMsg->JobInfo.sgemmInfo.M,
+                                         pMsg->JobInfo.sgemmInfo.N,
+                                         pMsg->JobInfo.sgemmInfo.K,
+                                         pMsg->JobInfo.sgemmInfo.bRelu,
+                                         pMsg->JobInfo.sgemmInfo.pPrelu,
+                                         pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                                         pMsg->JobInfo.sgemmInfo.pBasis);
+                        pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 8*K);
+                        pMsg->JobInfo.sgemmInfo.pC += 8;
                     }
 
-                    if (leftNHas2)
+                    if (NHas4)
                     {
-                        /* code */
+                        sgemmMxKx4_fp32  ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                          pMsg->JobInfo.sgemmInfo.pC,
+                                          pMsg->JobInfo.sgemmInfo.M,
+                                          pMsg->JobInfo.sgemmInfo.N,
+                                          pMsg->JobInfo.sgemmInfo.K,
+                                          pMsg->JobInfo.sgemmInfo.bRelu,
+                                          pMsg->JobInfo.sgemmInfo.pPrelu,
+                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                                          pMsg->JobInfo.sgemmInfo.pBasis);
+                        pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 4*K);
+                        pMsg->JobInfo.sgemmInfo.pC += 4;
                     }
 
-                    if (leftNHas1)
+                    if (NHas2)
                     {
-                        /* code */
+                        sgemmMxKx2_fp32  ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                          pMsg->JobInfo.sgemmInfo.pC,
+                                          pMsg->JobInfo.sgemmInfo.M,
+                                          pMsg->JobInfo.sgemmInfo.N,
+                                          pMsg->JobInfo.sgemmInfo.K,
+                                          pMsg->JobInfo.sgemmInfo.bRelu,
+                                          pMsg->JobInfo.sgemmInfo.pPrelu,
+                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                                          pMsg->JobInfo.sgemmInfo.pBasis);
+                        pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 2*K);
+                        pMsg->JobInfo.sgemmInfo.pC += 2;
+                    }
+
+                    if (NHas1)
+                    {
+                        sgemmMxKx1_fp32  ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                          pMsg->JobInfo.sgemmInfo.pC,
+                                          pMsg->JobInfo.sgemmInfo.M,
+                                          pMsg->JobInfo.sgemmInfo.N,
+                                          pMsg->JobInfo.sgemmInfo.K,
+                                          pMsg->JobInfo.sgemmInfo.bRelu,
+                                          pMsg->JobInfo.sgemmInfo.pPrelu,
+                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                                          pMsg->JobInfo.sgemmInfo.pBasis);
                     }
                 }
                 else if (FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)

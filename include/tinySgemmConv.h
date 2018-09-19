@@ -41,7 +41,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
 /* pInstance param is return by  tinySgemmConvCreateInstance */
 int tinySgemmConv(void *pInstance,
                   void *pInput, void *pOutPut,
-                  float *pBasis, bool bRelu, float *pRelu, bool bSharedPrelu,
+                  float *pBasis, bool bRelu, float *pPrelu, bool bSharedPrelu,
                   float (*int8Scale)[3], enum TINY_SGEMM_CONV_DATA_MODE mode);
 
 int tinySgemmConvReleaseInstance(void *pInstance);

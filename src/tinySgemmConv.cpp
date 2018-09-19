@@ -311,7 +311,7 @@ int tinySgemmConvReleaseInstance(void *pInstance)
 
 int tinySgemmConv(void *pInstance,
                   float *pInput, float *pOutput,
-                  float *pBasis, bool bRelu, float *pPRelu, bool bSharedPrelu,
+                  float *pBasis, bool bRelu, float *pPrelu, bool bSharedPrelu,
                   float (*int8Scale)[3],
                   enum TINY_SGEMM_CONV_DATA_MODE mode)
 {
@@ -393,6 +393,11 @@ int tinySgemmConv(void *pInstance,
         pMsg->JobInfo.sgemmInfo.pBIm2col = (uint8_t *)psgemmInstance->pIm2colB + i*TINY_SGEMM_UNIT_N*packBTypeSize;
         pMsg->JobInfo.sgemmInfo.pC       = pOutput + i*TINY_SGEMM_UNIT_N;
         pMsg->JobInfo.sgemmInfo.pPackB   = psgemmInstance->pPackB[pThreadInfo->index];
+        pMsg->JobInfo.sgemmInfo.pBasis   = pBasis;
+        pMsg->JobInfo.sgemmInfo.bRelu    = bRelu;
+        pMsg->JobInfo.sgemmInfo.pPrelu   = pPrelu;
+        pMsg->JobInfo.sgemmInfo.bSharedPrelu = bSharedPrelu;
+        pMsg->JobInfo.sgemmInfo.int8Scale = int8Scale;
         pMsg->JobInfo.sgemmInfo.packADataType  = packADataType;
         pMsg->JobInfo.sgemmInfo.packBDataType  = packBDataType;
 
@@ -414,6 +419,11 @@ int tinySgemmConv(void *pInstance,
         pMsg->JobInfo.sgemmInfo.pBIm2col = (uint8_t *)psgemmInstance->pIm2colB + blockN*TINY_SGEMM_UNIT_N*packBTypeSize;
         pMsg->JobInfo.sgemmInfo.pC       = pOutput + blockN*TINY_SGEMM_UNIT_N;
         pMsg->JobInfo.sgemmInfo.pPackB   = psgemmInstance->pPackB[pThreadInfo->index];
+        pMsg->JobInfo.sgemmInfo.pBasis   = pBasis;
+        pMsg->JobInfo.sgemmInfo.bRelu    = bRelu;
+        pMsg->JobInfo.sgemmInfo.pPrelu   = pPrelu;
+        pMsg->JobInfo.sgemmInfo.bSharedPrelu = bSharedPrelu;
+        pMsg->JobInfo.sgemmInfo.int8Scale = int8Scale;
         pMsg->JobInfo.sgemmInfo.packADataType  = packADataType;
         pMsg->JobInfo.sgemmInfo.packBDataType  = packBDataType;
 

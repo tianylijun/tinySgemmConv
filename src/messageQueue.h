@@ -37,6 +37,11 @@ struct sgemmJobInfo
     uint32_t N;
     uint32_t K;
     uint32_t n;
+    float *pBasis;
+    bool bRelu;
+    float *pPrelu;
+    bool bSharedPrelu;
+    float (*int8Scale)[3];
     enum SGEMM_DataType packADataType;
     enum SGEMM_DataType packBDataType;
 };

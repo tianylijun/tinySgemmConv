@@ -139,7 +139,6 @@ void tinySgemmConvPackA4x4_fp32_fp32(float *pA, float *pPackA, uint32_t M, uint3
         memcpy(pPackA + (M-1)*K, pA + (M-1)*K, K*sizeof(*pA));
 }
 
-#ifdef __aarch64__
 void tinySgemmConvPackB4x24_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N)
 {
     uint32_t i = 0;
@@ -163,22 +162,22 @@ void tinySgemmConvPackB4x24_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K,
         vsrc_32x4x4_0 = vld1q_f32_x4(pSrcStart+0*N);
         vsrc_32x4x2_0 = vld1q_f32_x2(pSrcStart+0*N+4);
         vst1q_f32_x4(pDstStart, vsrc_32x4x4_0);
-        vst1q_f32_x2(pDstStart+4, vsrc_32x4x4_0);
+        vst1q_f32_x2(pDstStart+4, vsrc_32x4x2_0);
 
         vsrc_32x4x4_1 = vld1q_f32_x4(pSrcStart+1*N);
         vsrc_32x4x2_1 = vld1q_f32_x2(pSrcStart+1*N+4);
         vst1q_f32_x4(pDstStart+6, vsrc_32x4x4_1);
-        vst1q_f32_x2(pDstStart+10, vsrc_32x4x4_1);
+        vst1q_f32_x2(pDstStart+10, vsrc_32x4x2_1);
 
         vsrc_32x4x4_2 = vld1q_f32_x4(pSrcStart+2*N);
         vsrc_32x4x2_2 = vld1q_f32_x2(pSrcStart+2*N+4);
         vst1q_f32_x4(pDstStart+12, vsrc_32x4x4_2);
-        vst1q_f32_x2(pDstStart+16, vsrc_32x4x4_2);
+        vst1q_f32_x2(pDstStart+16, vsrc_32x4x2_2);
 
         vsrc_32x4x4_3 = vld1q_f32_x4(pSrcStart+2*N);
         vsrc_32x4x2_3 = vld1q_f32_x2(pSrcStart+2*N+4);
         vst1q_f32_x4(pDstStart+18, vsrc_32x4x4_3);
-        vst1q_f32_x2(pDstStart+22, vsrc_32x4x4_3);
+        vst1q_f32_x2(pDstStart+22, vsrc_32x4x2_3);
 
         pDstStart += 96;
         pSrcStart += 4*N;
@@ -192,12 +191,12 @@ void tinySgemmConvPackB4x24_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K,
         vsrc_32x4x4_0 = vld1q_f32_x4(pSrcStart+0*N);
         vsrc_32x4x2_0 = vld1q_f32_x2(pSrcStart+0*N+4);
         vst1q_f32_x4(pDstStart, vsrc_32x4x4_0);
-        vst1q_f32_x2(pDstStart+4, vsrc_32x4x4_0);
+        vst1q_f32_x2(pDstStart+4, vsrc_32x4x2_0);
 
         vsrc_32x4x4_1 = vld1q_f32_x4(pSrcStart+1*N);
         vsrc_32x4x2_1 = vld1q_f32_x2(pSrcStart+1*N+4);
         vst1q_f32_x4(pDstStart+6, vsrc_32x4x4_1);
-        vst1q_f32_x2(pDstStart+10, vsrc_32x4x4_1);
+        vst1q_f32_x2(pDstStart+10, vsrc_32x4x2_1);
 
         pDstStart += 48;
         pSrcStart += 2*N;
@@ -211,7 +210,7 @@ void tinySgemmConvPackB4x24_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K,
         vsrc_32x4x4_0 = vld1q_f32_x4(pSrcStart+0*N);
         vsrc_32x4x2_0 = vld1q_f32_x2(pSrcStart+0*N+4);
         vst1q_f32_x4(pDstStart, vsrc_32x4x4_0);
-        vst1q_f32_x2(pDstStart+4, vsrc_32x4x4_0);
+        vst1q_f32_x2(pDstStart+16, vsrc_32x4x2_0);
     }
 }
 
@@ -271,7 +270,6 @@ static void tinySgemmConvPackB4x16_fp32_fp32_unit(float *pB, float *pPackB, uint
         vst1q_f32_x4(pDstStart, vsrc_32x4x4_0);
     }
 }
-#endif
 
 void tinySgemmConvPackB4x12_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N)
 {
@@ -471,7 +469,7 @@ static void tinySgemmConvPackB4x1_fp32_fp32_unit(float *pB, float *pPackB, uint3
         *pDst++ = *(pSrc + i*N);
 }
 
-void tinySgemmConvPackBLeft_fp32_fp32(float *pB, float *pPackB, uint32_t K, uint32_t N)
+void tinySgemmConvPackBLeftN_fp32_fp32(float *pB, float *pPackB, uint32_t K, uint32_t N)
 {
     uint32_t leftN, leftNHas16, leftNHas8, leftNHas4, leftNHas2, leftNHas1;
 
@@ -485,14 +483,12 @@ void tinySgemmConvPackBLeft_fp32_fp32(float *pB, float *pPackB, uint32_t K, uint
     leftNHas2  = (leftN>>1)&1;
     leftNHas1  = leftN&1;
 
-#ifdef __aarch64__
     if (leftNHas16)
     {
         tinySgemmConvPackB4x16_fp32_fp32_unit(pB, pPackB, K, N);
         pB     += 16;
         pPackB += 16*K;
     }
-#endif
 
     if (leftNHas8)
     {
@@ -517,4 +513,13 @@ void tinySgemmConvPackBLeft_fp32_fp32(float *pB, float *pPackB, uint32_t K, uint
 
     if (leftNHas1)
         tinySgemmConvPackB4x1_fp32_fp32_unit(pB, pPackB, K, N);
+}
+
+void tinySgemmConvPackBUnitN_fp32_fp32(float *pB, float *pPackB, uint32_t K, uint32_t N)
+{
+#ifdef __aarch64__
+    tinySgemmConvPackB4x24_fp32_fp32_unit(pB, pPackB, K, N);
+#else
+    tinySgemmConvPackB4x12_fp32_fp32_unit(pB, pPackB, K, N);
+#endif
 }
