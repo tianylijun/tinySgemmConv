@@ -47,6 +47,7 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
     vsrcC32x4x2_2 = vsrcC32x4x2_0;
     vsrcC32x4x2_3 = vsrcC32x4x2_1;
 
+    /* A:4x4 B:4x24 C:4x24 */
     for (uint32_t i = 0; i < KDiv4; ++i)
     {
         float *pCurB = pB+i*96;
@@ -79,15 +80,16 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
 
         vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0][3]);
         vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0][3]);
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][3]);
         vsrcB32x4x2 = vld1q_f32_x2(pCurB);
         pCurB += 8;
-        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][3]);
         vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[0][3]);
         /* ----- */
         vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[0][0]);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][0]);
         vsrcB32x4x4 = vld1q_f32_x4(pCurB);
         pCurB += 16;
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][0]);
+
         vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[0][1]);
         vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][1]);
 
@@ -98,12 +100,11 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
         vsrcC32x4x2_3.val[1] = vmlaq_n_f32(vsrcC32x4x2_3.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][3]);
 
         /* row 1 */
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][0]);
         vsrcB32x4x2 = vld1q_f32_x2(pCurB);
         pCurB += 8;
-
-        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][0]);
-        ARM_LOAD_PREFETCH_128(pCurB);
         vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][0]);
+        ARM_LOAD_PREFETCH_128(pCurB);
         vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][0]);
         vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][0]);
 
@@ -111,7 +112,7 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
         vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][1]);
         vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][1]);
         vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][1]);
-
+        ARM_LOAD_PREFETCH_32(pCurA);
         vsrcC32x4x4_2.val[0] = vmlaq_n_f32(vsrcC32x4x4_2.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][2]);
         vsrcC32x4x4_2.val[1] = vmlaq_n_f32(vsrcC32x4x4_2.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][2]);
         vsrcC32x4x4_2.val[2] = vmlaq_n_f32(vsrcC32x4x4_2.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][2]);
@@ -119,15 +120,17 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
 
         vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][3]);
         vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][3]);
+
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][3]);
         vsrcB32x4x2 = vld1q_f32_x2(pCurB);
         pCurB += 8;
-        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][3]);
         vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][3]);
-        ARM_LOAD_PREFETCH_32(pCurA);
+        /*-----*/
         vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[1][0]);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][0]);
         vsrcB32x4x4 = vld1q_f32_x4(pCurB);
         pCurB += 16;
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][0]);
+
         vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[1][1]);
         vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][1]);
 
@@ -138,14 +141,13 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
         vsrcC32x4x2_3.val[1] = vmlaq_n_f32(vsrcC32x4x2_3.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][3]);
 
         /* row 2 */
-        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
-        pCurB += 8;
         vsrcA32x4x2 = vld1q_f32_x2(pCurA);
         pCurA += 8;
-
         vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0][0]);
-        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
         vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0][0]);
+        ARM_LOAD_PREFETCH_128(pCurB);
         vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][0]);
         vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[0][0]);
 
@@ -161,15 +163,16 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
 
         vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0][3]);
         vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0][3]);
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][3]);
         vsrcB32x4x2 = vld1q_f32_x2(pCurB);
         pCurB += 8;
-        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][3]);
         vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[0][3]);
         /* ----- */
         vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[0][0]);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][0]);
         vsrcB32x4x4 = vld1q_f32_x4(pCurB);
         pCurB += 16;
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][0]);
+
         vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[0][1]);
         vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][1]);
 
@@ -180,12 +183,11 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
         vsrcC32x4x2_3.val[1] = vmlaq_n_f32(vsrcC32x4x2_3.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][3]);
 
         /* row 3 */
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][0]);
         vsrcB32x4x2 = vld1q_f32_x2(pCurB);
         pCurB += 8;
-
-        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][0]);
-        ARM_LOAD_PREFETCH_128(pCurB);
         vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][0]);
+        ARM_LOAD_PREFETCH_128(pCurB);
         vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][0]);
         vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][0]);
 
@@ -193,7 +195,7 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
         vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][1]);
         vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][1]);
         vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][1]);
-
+        ARM_LOAD_PREFETCH_32(pCurA);
         vsrcC32x4x4_2.val[0] = vmlaq_n_f32(vsrcC32x4x4_2.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][2]);
         vsrcC32x4x4_2.val[1] = vmlaq_n_f32(vsrcC32x4x4_2.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][2]);
         vsrcC32x4x4_2.val[2] = vmlaq_n_f32(vsrcC32x4x4_2.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][2]);
@@ -201,11 +203,12 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
 
         vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][3]);
         vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][3]);
+
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][3]);
         vsrcB32x4x2 = vld1q_f32_x2(pCurB);
         pCurB += 8;
-        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][3]);
         vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][3]);
-        ARM_LOAD_PREFETCH_32(pCurA);
+        /*-----*/
         vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[1][0]);
         vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][0]);
 
@@ -219,7 +222,7 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
         vsrcC32x4x2_3.val[1] = vmlaq_n_f32(vsrcC32x4x2_3.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][3]);
     }
 
-    /* A:4x2 B:2x12 C:4x12 */
+    /* A:4x2 B:2x24 C:4x24 */
     if (KHas2)
     {
         float *pCurB = pB+KDiv4*96;
@@ -253,9 +256,9 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
 
         vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0][3]);
         vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0][3]);
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][3]);
         vsrcB32x4x2 = vld1q_f32_x2(pCurB);
         pCurB += 8;
-        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][3]);
         vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[0][3]);
         /* ----- */
         vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[0][0]);
@@ -272,12 +275,11 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
         vsrcC32x4x2_3.val[1] = vmlaq_n_f32(vsrcC32x4x2_3.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][3]);
 
         /* row 1 */
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][0]);
         vsrcB32x4x2 = vld1q_f32_x2(pCurB);
         pCurB += 8;
-
-        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][0]);
-        ARM_LOAD_PREFETCH_128(pCurB);
         vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][0]);
+        ARM_LOAD_PREFETCH_128(pCurB);
         vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][0]);
         vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][0]);
 
@@ -285,7 +287,7 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
         vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][1]);
         vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][1]);
         vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][1]);
-
+        ARM_LOAD_PREFETCH_32(pCurA);
         vsrcC32x4x4_2.val[0] = vmlaq_n_f32(vsrcC32x4x4_2.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][2]);
         vsrcC32x4x4_2.val[1] = vmlaq_n_f32(vsrcC32x4x4_2.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][2]);
         vsrcC32x4x4_2.val[2] = vmlaq_n_f32(vsrcC32x4x4_2.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][2]);
@@ -293,11 +295,12 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
 
         vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][3]);
         vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][3]);
+
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][3]);
         vsrcB32x4x2 = vld1q_f32_x2(pCurB);
         pCurB += 8;
-        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][3]);
         vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][3]);
-        ARM_LOAD_PREFETCH_32(pCurA);
+        /* ----- */
         vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[1][0]);
         vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][0]);
 
@@ -311,10 +314,10 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
         vsrcC32x4x2_3.val[1] = vmlaq_n_f32(vsrcC32x4x2_3.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][3]);
     }
 
-    /* A:4x1 B:1x12 C:4x12 */
+    /* A:4x1 B:1x24 C:4x24 */
     if (KHas1)
     {
-        float *pCurB = pB+(K-1)*12;
+        float *pCurB = pB+(K-1)*24;
         float *pCurA = pA+(K-1)*4;
 
         float32x4_t vsrcA32x4;     /* 1 registers */
@@ -343,14 +346,15 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
 
         vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4[3]);
         vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4[3]);
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4[3]);
         vsrcB32x4x2 = vld1q_f32_x2(pCurB);
         pCurB += 8;
-        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4[3]);
         vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4[3]);
         /* ----- */
         vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4[0]);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4[0]);
         vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4[0]);
+
         vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x4[1]);
         vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x4[1]);
 
@@ -545,12 +549,545 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
 
 static void sgemm2xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
+    uint32_t KDiv4 = K>>2;
+    uint32_t KHas2 = (K>>1)&1;
+    uint32_t KHas1 = K&1;
 
+    uint32x4_t vzero;
+    float32x4x4_t vsrcC32x4x4_0, vsrcC32x4x4_1;   /* 8 registers */
+    float32x4x2_t vsrcC32x4x2_0, vsrcC32x4x2_1;   /* 4 registers */
+    vzero = veorq_u32(vzero, vzero);
+    vsrcC32x4x4_0.val[0] = vreinterpretq_f32_u32(vzero);
+    vsrcC32x4x4_0.val[1] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x4_0.val[2] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x4_0.val[3] = vsrcC32x4x4_0.val[1];
+    vsrcC32x4x4_1 = vsrcC32x4x4_0;
+    vsrcC32x4x2_0.val[0] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x2_0.val[1] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x2_1 = vsrcC32x4x2_0;
+
+    /* A:2x4 B:4x24 C:2x24 */
+    for (uint32_t i = 0; i < KDiv4; ++i)
+    {
+        float *pCurB = pB+i*96;
+        float *pCurA = pA+i*8;
+        float32x4x2_t vsrcA32x4x2; /* 2 registers */
+        float32x4x4_t vsrcB32x4x4; /* 4 registers */
+        float32x4x2_t vsrcB32x4x2; /* 2 registers */
+
+        /* row 0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcA32x4x2 = vld1q_f32_x2(pCurA);
+        pCurA += 8;
+
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0][0]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0][0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[0][0]);
+
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0][1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0][1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][1]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[0][1]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[0][0]);
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][0]);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[0][1]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][1]);
+
+        /* row 1 */
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0][2]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0][2]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][2]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[0][2]);
+
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0][3]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0][3]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[0][3]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[0][3]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[0][2]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][2]);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[0][3]);
+        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[0][3]);
+
+        /* row 2 */
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][0]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][0]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][0]);
+
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][1]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][1]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[1][0]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][0]);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[1][1]);
+        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][1]);
+
+        /* row 3 */
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][2]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][2]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][2]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][2]);
+        ARM_LOAD_PREFETCH_32(pCurA);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[1][3]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[1][3]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][3]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][3]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[1][2]);
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][2]);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x4x2.val[1][3]);
+        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x4x2.val[1][3]);
+    }
+
+    /* A:2x2 B:2x24 C:2x24 */
+    if (KHas2)
+    {
+        float *pCurB = pB+KDiv4*96;
+        float *pCurA = pA+KDiv4*8;
+
+        float32x4_t vsrcA32x4;     /* 1 registers */
+        float32x4x4_t vsrcB32x4x4; /* 4 registers */
+        float32x4x2_t vsrcB32x4x2; /* 2 registers */
+
+        /* row 0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB      += 16;
+        vsrcA32x4   = vld1q_f32(pCurA);
+        pCurA      += 4;
+
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[0]);
+
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4[1]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4[1]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4[0]);
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4[0]);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x4[1]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x4[1]);
+
+        /* row 1 */
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[2]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[2]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[2]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[2]);
+
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4[3]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4[3]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4[3]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4[3]);
+        /*----*/
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4[2]);
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4[2]);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x4[3]);
+        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x4[3]);
+    }
+
+    /* A:2x1 B:1x24 C:2x24 */
+    if (KHas1)
+    {
+        float *pCurB = pB+(K-1)*24;
+        float *pCurA = pA+(K-1)*2;
+        float32x2_t vsrcA32x2;     /* 1 registers */
+        float32x4x4_t vsrcB32x4x4; /* 4 registers */
+        float32x4x2_t vsrcB32x4x2; /* 2 registers */
+
+        /* row 0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB      += 16;
+        vsrcA32x2   = vld1_f32(pCurA);
+
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x2[0]);
+        ARM_LOAD_PREFETCH_32(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x2[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x2[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x2[0]);
+
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x2[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x2[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x2[1]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x2[1]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x2[0]);
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x2[0]);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x2.val[0], vsrcA32x2[1]);
+        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x2.val[1], vsrcA32x2[1]);
+    }
+
+    if (pBasis)
+    {
+        /* one basis for one channel */
+        float32x4_t vbasis32x4_0 = vdupq_n_f32(pBasis[0]);
+        float32x4_t vbasis32x4_1 = vdupq_n_f32(pBasis[1]);
+
+        vsrcC32x4x4_0.val[0] = vaddq_f32(vsrcC32x4x4_0.val[0], vbasis32x4_0);
+        vsrcC32x4x4_0.val[1] = vaddq_f32(vsrcC32x4x4_0.val[1], vbasis32x4_0);
+        vsrcC32x4x4_0.val[2] = vaddq_f32(vsrcC32x4x4_0.val[2], vbasis32x4_0);
+        vsrcC32x4x4_0.val[3] = vaddq_f32(vsrcC32x4x4_0.val[3], vbasis32x4_0);
+        vsrcC32x4x2_0.val[0] = vaddq_f32(vsrcC32x4x2_0.val[0], vbasis32x4_0);
+        vsrcC32x4x2_0.val[1] = vaddq_f32(vsrcC32x4x2_0.val[1], vbasis32x4_0);
+
+        vsrcC32x4x4_1.val[0] = vaddq_f32(vsrcC32x4x4_1.val[0], vbasis32x4_1);
+        vsrcC32x4x4_1.val[1] = vaddq_f32(vsrcC32x4x4_1.val[1], vbasis32x4_1);
+        vsrcC32x4x4_1.val[2] = vaddq_f32(vsrcC32x4x4_1.val[2], vbasis32x4_1);
+        vsrcC32x4x4_1.val[3] = vaddq_f32(vsrcC32x4x4_1.val[3], vbasis32x4_1);
+        vsrcC32x4x2_1.val[0] = vaddq_f32(vsrcC32x4x2_1.val[0], vbasis32x4_1);
+        vsrcC32x4x2_1.val[1] = vaddq_f32(vsrcC32x4x2_1.val[1], vbasis32x4_1);
+    }
+
+    if (bRelu)
+    {
+        uint32x4_t vmask;
+        float32x4_t vzero;
+        vmask = veorq_u32(vmask, vmask);
+        vzero = vreinterpretq_f32_u32(vmask);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[0], vzero);
+        vsrcC32x4x4_0.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[1], vzero);
+        vsrcC32x4x4_0.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[2], vzero);
+        vsrcC32x4x4_0.val[2] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[3], vzero);
+        vsrcC32x4x4_0.val[3] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[3]);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[0], vzero);
+        vsrcC32x4x2_0.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x2_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[1], vzero);
+        vsrcC32x4x2_0.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x2_0.val[1]);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[0], vzero);
+        vsrcC32x4x4_1.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[1], vzero);
+        vsrcC32x4x4_1.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[2], vzero);
+        vsrcC32x4x4_1.val[2] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[3], vzero);
+        vsrcC32x4x4_1.val[3] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[3]);
+        vmask                = vcleq_f32(vsrcC32x4x2_1.val[0], vzero);
+        vsrcC32x4x2_1.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x2_1.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x2_1.val[1], vzero);
+        vsrcC32x4x2_1.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x2_1.val[1]);
+    }
+    else if (pPrelu)
+    {
+        uint32x4_t vmask;
+        float32x4_t vscale32x4, vmul, vzero;
+        vmask = veorq_u32(vmask, vmask);
+        vzero = vreinterpretq_f32_u32(vmask);
+        if (bSharedPrelu) /* all channel use same prelu */
+            vscale32x4 = vdupq_n_f32(pPrelu[0]);
+        else
+            vscale32x4 = vld1q_f32(pPrelu);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[0], vscale32x4[0]);
+        vsrcC32x4x4_0.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[1], vscale32x4[0]);
+        vsrcC32x4x4_0.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[2], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[2], vscale32x4[0]);
+        vsrcC32x4x4_0.val[2] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x2_0.val[0], vscale32x4[0]);
+        vsrcC32x4x2_0.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x2_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x2_0.val[1], vscale32x4[0]);
+        vsrcC32x4x2_0.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x2_0.val[1]);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[0], vscale32x4[1]);
+        vsrcC32x4x4_1.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[1], vscale32x4[1]);
+        vsrcC32x4x4_1.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[2], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[2], vscale32x4[1]);
+        vsrcC32x4x4_1.val[2] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x2_1.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x2_1.val[0], vscale32x4[1]);
+        vsrcC32x4x2_1.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x2_1.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x2_1.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x2_1.val[1], vscale32x4[1]);
+        vsrcC32x4x2_1.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x2_1.val[1]);
+    }
+
+    vst1q_f32_x4(pC,        vsrcC32x4x4_0);
+    vst1q_f32_x2(pC+16,     vsrcC32x4x2_0);
+    vst1q_f32_x4(pC+N,      vsrcC32x4x4_1);
+    vst1q_f32_x2(pC+N+16,   vsrcC32x4x2_1);
 }
 
 static void sgemm1xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
+    uint32_t KDiv4 = K>>2;
+    uint32_t KHas2 = (K>>1)&1;
+    uint32_t KHas1 = K&1;
 
+    uint32x4_t vzero;
+    float32x4x4_t vsrcC32x4x4_0;   /* 8 registers */
+    float32x4x2_t vsrcC32x4x2_0;   /* 4 registers */
+    vzero = veorq_u32(vzero, vzero);
+    vsrcC32x4x4_0.val[0] = vreinterpretq_f32_u32(vzero);
+    vsrcC32x4x4_0.val[1] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x4_0.val[2] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x4_0.val[3] = vsrcC32x4x4_0.val[1];
+    vsrcC32x4x2_0.val[0] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x2_0.val[1] = vsrcC32x4x4_0.val[0];
+
+    /* A:1x4 B:4x24 C:1x24 */
+    for (uint32_t i = 0; i < KDiv4; ++i)
+    {
+        float *pCurB = pB+i*96;
+        float *pCurA = pA+i*8;
+        float32x4_t vsrcA32x4;     /* 1 registers */
+        float32x4x4_t vsrcB32x4x4; /* 4 registers */
+        float32x4x2_t vsrcB32x4x2; /* 2 registers */
+
+        /* row 0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcA32x4 = vld1q_f32(pCurA);
+        pCurA += 4;
+
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[0]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[0]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4[0]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4[0]);
+
+        /* row 1 */
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[1]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[1]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[1]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[1]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4[1]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4[1]);
+
+        /* row 2 */
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[2]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[2]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[2]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[2]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4[2]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4[2]);
+
+        /* row 3 */
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[3]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[3]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[3]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[3]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x4[3]);
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x4[3]);
+    }
+
+    /* A:1x2 B:2x24 C:1x24 */
+    if (KHas2)
+    {
+        float *pCurB = pB+KDiv4*96;
+        float *pCurA = pA+KDiv4*4;
+
+        float32x2_t vsrcA32x2;     /* 1 registers */
+        float32x4x4_t vsrcB32x4x4; /* 4 registers */
+        float32x4x2_t vsrcB32x4x2; /* 2 registers */
+
+        /* row 0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB      += 16;
+        vsrcA32x2   = vld1_f32(pCurA);
+        pCurA      += 2;
+
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x2[0]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x2[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x2[0]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x2[0]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x2[0]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x2[0]);
+
+        /* row 1 */
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x2[1]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x2[1]);
+        ARM_LOAD_PREFETCH_128(pCurB);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x2[1]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        pCurB += 8;
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x2[1]);
+        /*----*/
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], vsrcA32x2[1]);
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], vsrcA32x2[1]);
+    }
+
+    /* A:1x1 B:1x24 C:1x24 */
+    if (KHas1)
+    {
+        float *pCurB = pB+(K-1)*24;
+        float *pCurA = pA+(K-1);
+        float32x4x4_t vsrcB32x4x4; /* 4 registers */
+        float32x4x2_t vsrcB32x4x2; /* 2 registers */
+
+        /* row 0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], pCurA[0]);
+        ARM_LOAD_PREFETCH_32(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], pCurA[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], pCurA[0]);
+        vsrcB32x4x2 = vld1q_f32_x2(pCurB);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], pCurA[0]);
+        /* ----- */
+        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x2.val[0], pCurA[0]);
+        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x2.val[1], pCurA[0]);
+    }
+
+    if (pBasis)
+    {
+        /* one basis for one channel */
+        float32x4_t vbasis32x4_0 = vdupq_n_f32(pBasis[0]);
+        vsrcC32x4x4_0.val[0] = vaddq_f32(vsrcC32x4x4_0.val[0], vbasis32x4_0);
+        vsrcC32x4x4_0.val[1] = vaddq_f32(vsrcC32x4x4_0.val[1], vbasis32x4_0);
+        vsrcC32x4x4_0.val[2] = vaddq_f32(vsrcC32x4x4_0.val[2], vbasis32x4_0);
+        vsrcC32x4x4_0.val[3] = vaddq_f32(vsrcC32x4x4_0.val[3], vbasis32x4_0);
+        vsrcC32x4x2_0.val[0] = vaddq_f32(vsrcC32x4x2_0.val[0], vbasis32x4_0);
+        vsrcC32x4x2_0.val[1] = vaddq_f32(vsrcC32x4x2_0.val[1], vbasis32x4_0);
+    }
+
+    if (bRelu)
+    {
+        uint32x4_t vmask;
+        float32x4_t vzero;
+        vmask = veorq_u32(vmask, vmask);
+        vzero = vreinterpretq_f32_u32(vmask);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[0], vzero);
+        vsrcC32x4x4_0.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[1], vzero);
+        vsrcC32x4x4_0.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[2], vzero);
+        vsrcC32x4x4_0.val[2] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[3], vzero);
+        vsrcC32x4x4_0.val[3] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[3]);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[0], vzero);
+        vsrcC32x4x2_0.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x2_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[1], vzero);
+        vsrcC32x4x2_0.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x2_0.val[1]);
+    }
+    else if (pPrelu)
+    {
+        uint32x4_t vmask;
+        float32x4_t vmul, vzero;
+        vmask = veorq_u32(vmask, vmask);
+        vzero = vreinterpretq_f32_u32(vmask);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[0], pPrelu[0]);
+        vsrcC32x4x4_0.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[1], pPrelu[0]);
+        vsrcC32x4x4_0.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[2], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[2], pPrelu[0]);
+        vsrcC32x4x4_0.val[2] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x2_0.val[0], pPrelu[0]);
+        vsrcC32x4x2_0.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x2_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x2_0.val[1], pPrelu[0]);
+        vsrcC32x4x2_0.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x2_0.val[1]);
+    }
+
+    vst1q_f32_x4(pC,        vsrcC32x4x4_0);
+    vst1q_f32_x2(pC+16,     vsrcC32x4x2_0);
 }
 
 void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
@@ -565,6 +1102,10 @@ void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
         sgemm4xKx24_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += i*4*K;
         pC += i*4*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 4;
+        if (NULL != pBasis)
+            pBasis += 4;
     }
 
     if (MHas2)
@@ -572,6 +1113,10 @@ void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
         sgemm2xKx24_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 2;
+        if (NULL != pBasis)
+            pBasis += 2;
     }
 
     if (MHas1)
@@ -1191,6 +1736,10 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
         sgemm4xKx12_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += i*4*K;
         pC += i*4*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 4;
+        if (NULL != pBasis)
+            pBasis += 4;
     }
 
     if (MHas2)
@@ -1198,6 +1747,10 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
         sgemm2xKx12_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 2;
+        if (NULL != pBasis)
+            pBasis += 2;
     }
 
     if (MHas1)
@@ -1206,17 +1759,718 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
 
 static void sgemm4xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
+    uint32_t KDiv4 = K>>2;
+    uint32_t KHas2 = (K>>1)&1;
+    uint32_t KHas1 = K&1;
 
+    uint32x4_t vzero;
+    float32x4x4_t vsrcC32x4x4_0, vsrcC32x4x4_1, vsrcC32x4x4_2, vsrcC32x4x4_3;   /* 16 registers */
+    vzero = veorq_u32(vzero, vzero);
+    vsrcC32x4x4_0.val[0] = vreinterpretq_f32_u32(vzero);
+    vsrcC32x4x4_0.val[1] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x4_0.val[2] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x4_1 = vsrcC32x4x4_0;
+    vsrcC32x4x4_2 = vsrcC32x4x4_0;
+    vsrcC32x4x4_3 = vsrcC32x4x4_0;
+
+    /* A:4x4 B:4x16 C:4x16 */
+    for (uint32_t i = 0; i < KDiv4; ++i)
+    {
+        float *pCurB = pB+i*64;
+        float *pCurA = pA+i*16;
+        float32x4_t vsrcA32x4, vsrcA32x4_1, vsrcA32x4_2, vsrcA32x4_3;  /* 4 registers */
+        float32x4x4_t vsrcB32x4x4, vsrcB32x4x4_1, vsrcB32x4x4_2;       /* 12 registers */
+        /* row0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcA32x4   = vld1q_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4[1]);
+        vsrcC32x4x4_2.val[0] = vmlaq_n_f32(vsrcC32x4x4_2.val[0], vsrcB32x4x4.val[0], vsrcA32x4[2]);
+        vsrcC32x4x4_2.val[1] = vmlaq_n_f32(vsrcC32x4x4_2.val[1], vsrcB32x4x4.val[1], vsrcA32x4[2]);
+        vsrcC32x4x4_2.val[2] = vmlaq_n_f32(vsrcC32x4x4_2.val[2], vsrcB32x4x4.val[2], vsrcA32x4[2]);
+        vsrcC32x4x4_2.val[3] = vmlaq_n_f32(vsrcC32x4x4_2.val[3], vsrcB32x4x4.val[3], vsrcA32x4[2]);
+        vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4[3]);
+        vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4[3]);
+        vsrcB32x4x4_1 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4[3]);
+        vsrcA32x4_1   = vld1q_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4[3]);
+
+        /* row1 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4_1[0]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4_1[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_1[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_1[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4_1[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4_1[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_1[1]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_1[1]);
+        vsrcC32x4x4_2.val[0] = vmlaq_n_f32(vsrcC32x4x4_2.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4_1[2]);
+        vsrcC32x4x4_2.val[1] = vmlaq_n_f32(vsrcC32x4x4_2.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4_1[2]);
+        vsrcC32x4x4_2.val[2] = vmlaq_n_f32(vsrcC32x4x4_2.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_1[2]);
+        vsrcC32x4x4_2.val[3] = vmlaq_n_f32(vsrcC32x4x4_2.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_1[2]);
+        vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4_1[3]);
+        vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4_1[3]);
+        vsrcB32x4x4_2 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_1[3]);
+        vsrcA32x4_2   = vld1q_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_1[3]);
+
+        /* row2 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4_2.val[0], vsrcA32x4_2[0]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4_2.val[1], vsrcA32x4_2[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4_2.val[2], vsrcA32x4_2[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4_2.val[3], vsrcA32x4_2[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4_2.val[0], vsrcA32x4_2[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4_2.val[1], vsrcA32x4_2[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4_2.val[2], vsrcA32x4_2[1]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4_2.val[3], vsrcA32x4_2[1]);
+        vsrcC32x4x4_2.val[0] = vmlaq_n_f32(vsrcC32x4x4_2.val[0], vsrcB32x4x4_2.val[0], vsrcA32x4_2[2]);
+        vsrcC32x4x4_2.val[1] = vmlaq_n_f32(vsrcC32x4x4_2.val[1], vsrcB32x4x4_2.val[1], vsrcA32x4_2[2]);
+        vsrcC32x4x4_2.val[2] = vmlaq_n_f32(vsrcC32x4x4_2.val[2], vsrcB32x4x4_2.val[2], vsrcA32x4_2[2]);
+        vsrcC32x4x4_2.val[3] = vmlaq_n_f32(vsrcC32x4x4_2.val[3], vsrcB32x4x4_2.val[3], vsrcA32x4_2[2]);
+        vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4_2.val[0], vsrcA32x4_2[3]);
+        vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4_2.val[1], vsrcA32x4_2[3]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_2[3]);
+        vsrcA32x4_3   = vld1q_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_2[3]);
+
+        /* row3 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4_3[0]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4_3[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4_3[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4_3[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4_3[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4_3[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4_3[1]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4_3[1]);
+        vsrcC32x4x4_2.val[0] = vmlaq_n_f32(vsrcC32x4x4_2.val[0], vsrcB32x4x4.val[0], vsrcA32x4_3[2]);
+        vsrcC32x4x4_2.val[1] = vmlaq_n_f32(vsrcC32x4x4_2.val[1], vsrcB32x4x4.val[1], vsrcA32x4_3[2]);
+        vsrcC32x4x4_2.val[2] = vmlaq_n_f32(vsrcC32x4x4_2.val[2], vsrcB32x4x4.val[2], vsrcA32x4_3[2]);
+        vsrcC32x4x4_2.val[3] = vmlaq_n_f32(vsrcC32x4x4_2.val[3], vsrcB32x4x4.val[3], vsrcA32x4_3[2]);
+        vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4_3[3]);
+        vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4_3[3]);
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4_3[3]);
+        vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4_3[3]);
+    }
+
+    /* A:4x2 B:2x16 C:4x16 */
+    if (KHas2)
+    {
+        float *pCurB = pB+KDiv4*64;
+        float *pCurA = pA+KDiv4*16;
+        float32x4_t vsrcA32x4, vsrcA32x4_1;       /* 2 registers */
+        float32x4x4_t vsrcB32x4x4, vsrcB32x4x4_1; /* 8 registers */
+
+        /* row0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcA32x4   = vld1q_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4[1]);
+        vsrcC32x4x4_2.val[0] = vmlaq_n_f32(vsrcC32x4x4_2.val[0], vsrcB32x4x4.val[0], vsrcA32x4[2]);
+        vsrcC32x4x4_2.val[1] = vmlaq_n_f32(vsrcC32x4x4_2.val[1], vsrcB32x4x4.val[1], vsrcA32x4[2]);
+        vsrcC32x4x4_2.val[2] = vmlaq_n_f32(vsrcC32x4x4_2.val[2], vsrcB32x4x4.val[2], vsrcA32x4[2]);
+        vsrcC32x4x4_2.val[3] = vmlaq_n_f32(vsrcC32x4x4_2.val[3], vsrcB32x4x4.val[3], vsrcA32x4[2]);
+        vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4[3]);
+        vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4[3]);
+        vsrcB32x4x4_1 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4[3]);
+        vsrcA32x4_1   = vld1q_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4[3]);
+
+        /* row1 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4_1[0]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4_1[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_1[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_1[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4_1[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4_1[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_1[1]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_1[1]);
+        vsrcC32x4x4_2.val[0] = vmlaq_n_f32(vsrcC32x4x4_2.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4_1[2]);
+        vsrcC32x4x4_2.val[1] = vmlaq_n_f32(vsrcC32x4x4_2.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4_1[2]);
+        vsrcC32x4x4_2.val[2] = vmlaq_n_f32(vsrcC32x4x4_2.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_1[2]);
+        vsrcC32x4x4_2.val[3] = vmlaq_n_f32(vsrcC32x4x4_2.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_1[2]);
+        vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4_1[3]);
+        vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4_1[3]);
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_1[3]);
+        vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_1[3]);
+    }
+
+    /* A:4x1 B:1x16 C:4x16 */
+    if (KHas1)
+    {
+        float *pCurB = pB+(K-1)*16;
+        float *pCurA = pA+(K-1)*4;
+        float32x4_t vsrcA32x4;     /* 2 registers */
+        float32x4x4_t vsrcB32x4x4; /* 8 registers */
+        /* row0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        vsrcA32x4   = vld1q_f32(pCurA);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4[1]);
+        vsrcC32x4x4_2.val[0] = vmlaq_n_f32(vsrcC32x4x4_2.val[0], vsrcB32x4x4.val[0], vsrcA32x4[2]);
+        vsrcC32x4x4_2.val[1] = vmlaq_n_f32(vsrcC32x4x4_2.val[1], vsrcB32x4x4.val[1], vsrcA32x4[2]);
+        vsrcC32x4x4_2.val[2] = vmlaq_n_f32(vsrcC32x4x4_2.val[2], vsrcB32x4x4.val[2], vsrcA32x4[2]);
+        vsrcC32x4x4_2.val[3] = vmlaq_n_f32(vsrcC32x4x4_2.val[3], vsrcB32x4x4.val[3], vsrcA32x4[2]);
+        vsrcC32x4x4_3.val[0] = vmlaq_n_f32(vsrcC32x4x4_3.val[0], vsrcB32x4x4.val[0], vsrcA32x4[3]);
+        vsrcC32x4x4_3.val[1] = vmlaq_n_f32(vsrcC32x4x4_3.val[1], vsrcB32x4x4.val[1], vsrcA32x4[3]);
+        vsrcC32x4x4_3.val[2] = vmlaq_n_f32(vsrcC32x4x4_3.val[2], vsrcB32x4x4.val[2], vsrcA32x4[3]);
+        vsrcC32x4x4_3.val[3] = vmlaq_n_f32(vsrcC32x4x4_3.val[3], vsrcB32x4x4.val[3], vsrcA32x4[3]);
+    }
+
+    if (pBasis)
+    {
+        /* one basis for one channel */
+        float32x4_t vbasis32x4_0 = vdupq_n_f32(pBasis[0]);
+        float32x4_t vbasis32x4_1 = vdupq_n_f32(pBasis[1]);
+        float32x4_t vbasis32x4_2 = vdupq_n_f32(pBasis[2]);
+        float32x4_t vbasis32x4_3 = vdupq_n_f32(pBasis[3]);
+        vsrcC32x4x4_0.val[0] = vaddq_f32(vsrcC32x4x4_0.val[0], vbasis32x4_0);
+        vsrcC32x4x4_0.val[1] = vaddq_f32(vsrcC32x4x4_0.val[1], vbasis32x4_0);
+        vsrcC32x4x4_0.val[2] = vaddq_f32(vsrcC32x4x4_0.val[2], vbasis32x4_0);
+        vsrcC32x4x4_0.val[3] = vaddq_f32(vsrcC32x4x4_0.val[3], vbasis32x4_0);
+        vsrcC32x4x4_1.val[0] = vaddq_f32(vsrcC32x4x4_1.val[0], vbasis32x4_1);
+        vsrcC32x4x4_1.val[1] = vaddq_f32(vsrcC32x4x4_1.val[1], vbasis32x4_1);
+        vsrcC32x4x4_1.val[2] = vaddq_f32(vsrcC32x4x4_1.val[2], vbasis32x4_1);
+        vsrcC32x4x4_1.val[3] = vaddq_f32(vsrcC32x4x4_1.val[3], vbasis32x4_1);
+        vsrcC32x4x4_2.val[0] = vaddq_f32(vsrcC32x4x4_2.val[0], vbasis32x4_2);
+        vsrcC32x4x4_2.val[1] = vaddq_f32(vsrcC32x4x4_2.val[1], vbasis32x4_2);
+        vsrcC32x4x4_2.val[2] = vaddq_f32(vsrcC32x4x4_2.val[2], vbasis32x4_2);
+        vsrcC32x4x4_2.val[3] = vaddq_f32(vsrcC32x4x4_2.val[3], vbasis32x4_2);
+        vsrcC32x4x4_3.val[0] = vaddq_f32(vsrcC32x4x4_3.val[0], vbasis32x4_3);
+        vsrcC32x4x4_3.val[1] = vaddq_f32(vsrcC32x4x4_3.val[1], vbasis32x4_3);
+        vsrcC32x4x4_3.val[2] = vaddq_f32(vsrcC32x4x4_3.val[2], vbasis32x4_3);
+        vsrcC32x4x4_3.val[3] = vaddq_f32(vsrcC32x4x4_3.val[3], vbasis32x4_3);
+    }
+
+    if (bRelu)
+    {
+        uint32x4_t vmask;
+        float32x4_t vzero;
+        vmask = veorq_u32(vmask, vmask);
+        vzero = vreinterpretq_f32_u32(vmask);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[0], vzero);
+        vsrcC32x4x4_0.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[1], vzero);
+        vsrcC32x4x4_0.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[2], vzero);
+        vsrcC32x4x4_0.val[2] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[3], vzero);
+        vsrcC32x4x4_0.val[3] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[3]);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[0], vzero);
+        vsrcC32x4x4_1.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[1], vzero);
+        vsrcC32x4x4_1.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[2], vzero);
+        vsrcC32x4x4_1.val[2] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[3], vzero);
+        vsrcC32x4x4_1.val[3] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[3]);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_2.val[0], vzero);
+        vsrcC32x4x4_2.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x4_2.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_2.val[1], vzero);
+        vsrcC32x4x4_2.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x4_2.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_2.val[2], vzero);
+        vsrcC32x4x4_2.val[2] = vbslq_f32(vmask, vzero, vsrcC32x4x4_2.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_2.val[3], vzero);
+        vsrcC32x4x4_2.val[3] = vbslq_f32(vmask, vzero, vsrcC32x4x4_2.val[3]);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_3.val[0], vzero);
+        vsrcC32x4x4_3.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x4_3.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_3.val[1], vzero);
+        vsrcC32x4x4_3.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x4_3.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_3.val[2], vzero);
+        vsrcC32x4x4_3.val[2] = vbslq_f32(vmask, vzero, vsrcC32x4x4_3.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_3.val[3], vzero);
+        vsrcC32x4x4_3.val[3] = vbslq_f32(vmask, vzero, vsrcC32x4x4_3.val[3]);
+    }
+    else if (pPrelu)
+    {
+        uint32x4_t vmask;
+        float32x4_t vscale32x4, vmul, vzero;
+        vmask = veorq_u32(vmask, vmask);
+        vzero = vreinterpretq_f32_u32(vmask);
+        if (bSharedPrelu) /* all channel use same prelu */
+            vscale32x4 = vdupq_n_f32(pPrelu[0]);
+        else
+            vscale32x4 = vld1q_f32(pPrelu);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[0], vscale32x4[0]);
+        vsrcC32x4x4_0.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[1], vscale32x4[0]);
+        vsrcC32x4x4_0.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[2], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[2], vscale32x4[0]);
+        vsrcC32x4x4_0.val[2] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[3], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[3], vscale32x4[0]);
+        vsrcC32x4x4_0.val[3] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[3]);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[0], vscale32x4[0]);
+        vsrcC32x4x4_1.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[1], vscale32x4[0]);
+        vsrcC32x4x4_1.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[2], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[2], vscale32x4[0]);
+        vsrcC32x4x4_1.val[2] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[3], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[3], vscale32x4[0]);
+        vsrcC32x4x4_1.val[3] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[3]);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_2.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_2.val[0], vscale32x4[0]);
+        vsrcC32x4x4_2.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x4_2.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_2.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_2.val[1], vscale32x4[0]);
+        vsrcC32x4x4_2.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x4_2.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_2.val[2], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_2.val[2], vscale32x4[0]);
+        vsrcC32x4x4_2.val[2] = vbslq_f32(vmask, vmul, vsrcC32x4x4_2.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_2.val[3], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_2.val[3], vscale32x4[0]);
+        vsrcC32x4x4_2.val[3] = vbslq_f32(vmask, vmul, vsrcC32x4x4_2.val[3]);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_3.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_3.val[0], vscale32x4[0]);
+        vsrcC32x4x4_3.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x4_3.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_3.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_3.val[1], vscale32x4[0]);
+        vsrcC32x4x4_3.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x4_3.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_3.val[2], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_3.val[2], vscale32x4[0]);
+        vsrcC32x4x4_3.val[2] = vbslq_f32(vmask, vmul, vsrcC32x4x4_3.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_3.val[3], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_3.val[3], vscale32x4[0]);
+        vsrcC32x4x4_3.val[3] = vbslq_f32(vmask, vmul, vsrcC32x4x4_3.val[3]);
+    }
+
+    vst1q_f32_x4(pC,     vsrcC32x4x4_0);
+    vst1q_f32_x4(pC+N,   vsrcC32x4x4_1);
+    vst1q_f32_x4(pC+2*N, vsrcC32x4x4_2);
+    vst1q_f32_x4(pC+3*N, vsrcC32x4x4_3);
 }
 
 static void sgemm2xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
+    uint32_t KDiv4 = K>>2;
+    uint32_t KHas2 = (K>>1)&1;
+    uint32_t KHas1 = K&1;
 
+    uint32x4_t vzero;
+    float32x4x4_t vsrcC32x4x4_0, vsrcC32x4x4_1;   /* 8 registers */
+    vzero = veorq_u32(vzero, vzero);
+    vsrcC32x4x4_0.val[0] = vreinterpretq_f32_u32(vzero);
+    vsrcC32x4x4_0.val[1] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x4_0.val[2] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x4_1 = vsrcC32x4x4_0;
+
+    /* A:2x4 B:4x16 C:2x16 */
+    for (uint32_t i = 0; i < KDiv4; ++i)
+    {
+        float *pCurB = pB+i*64;
+        float *pCurA = pA+i*8;
+        float32x4_t vsrcA32x4, vsrcA32x4_1, vsrcA32x4_2, vsrcA32x4_3;  /* 4 registers */
+        float32x4x4_t vsrcB32x4x4, vsrcB32x4x4_1, vsrcB32x4x4_2;       /* 12 registers */
+        /* row0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcA32x4   = vld1q_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4[1]);
+        vsrcB32x4x4_1 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4[1]);
+
+        /* row1 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4_1[0]);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4_1[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_1[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_1[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4_1[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4_1[1]);
+        vsrcB32x4x4_2 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4_1[1]);
+        vsrcA32x4_2   = vld1q_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4_1[1]);
+
+        /* row2 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4_2.val[0], vsrcA32x4_2[0]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4_2.val[1], vsrcA32x4_2[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4_2.val[2], vsrcA32x4_2[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4_2.val[3], vsrcA32x4_2[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4_2.val[0], vsrcA32x4_2[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4_2.val[1], vsrcA32x4_2[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4_2.val[2], vsrcA32x4_2[1]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4_2.val[3], vsrcA32x4_2[1]);
+
+        /* row3 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4_3[0]);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4_3[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4_3[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4_3[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4_3[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4_3[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4_3[1]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4_3[1]);
+    }
+
+    /* A:2x2 B:2x16 C:2x16 */
+    if (KHas2)
+    {
+        float *pCurB = pB+KDiv4*64;
+        float *pCurA = pA+KDiv4*8;
+        float32x4_t vsrcA32x4;       /* 2 registers */
+        float32x4x4_t vsrcB32x4x4, vsrcB32x4x4_1; /* 8 registers */
+
+        /* row0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcA32x4   = vld1q_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4[1]);
+        vsrcB32x4x4_1 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x4[1]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x4[1]);
+
+        /* row1 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4[2]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4[2]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4[2]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4[2]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4[3]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4[3]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4[3]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4[3]);
+    }
+
+    /* A:2x1 B:1x16 C:2x16 */
+    if (KHas1)
+    {
+        float *pCurB = pB+(K-1)*16;
+        float *pCurA = pA+(K-1)*2;
+        float32x2_t vsrcA32x2;
+        float32x4x4_t vsrcB32x4x4;
+
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        vsrcA32x2   = vld1_f32(pCurA);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x2[0]);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x2[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x2[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x2[0]);
+        vsrcC32x4x4_1.val[0] = vmlaq_n_f32(vsrcC32x4x4_1.val[0], vsrcB32x4x4.val[0], vsrcA32x2[1]);
+        vsrcC32x4x4_1.val[1] = vmlaq_n_f32(vsrcC32x4x4_1.val[1], vsrcB32x4x4.val[1], vsrcA32x2[1]);
+        vsrcC32x4x4_1.val[2] = vmlaq_n_f32(vsrcC32x4x4_1.val[2], vsrcB32x4x4.val[2], vsrcA32x2[1]);
+        vsrcC32x4x4_1.val[3] = vmlaq_n_f32(vsrcC32x4x4_1.val[3], vsrcB32x4x4.val[3], vsrcA32x2[1]);
+    }
+
+    if (pBasis)
+    {
+        /* one basis for one channel */
+        float32x4_t vbasis32x4_0 = vdupq_n_f32(pBasis[0]);
+        float32x4_t vbasis32x4_1 = vdupq_n_f32(pBasis[1]);
+        vsrcC32x4x4_0.val[0] = vaddq_f32(vsrcC32x4x4_0.val[0], vbasis32x4_0);
+        vsrcC32x4x4_0.val[1] = vaddq_f32(vsrcC32x4x4_0.val[1], vbasis32x4_0);
+        vsrcC32x4x4_0.val[2] = vaddq_f32(vsrcC32x4x4_0.val[2], vbasis32x4_0);
+        vsrcC32x4x4_0.val[3] = vaddq_f32(vsrcC32x4x4_0.val[3], vbasis32x4_0);
+        vsrcC32x4x4_1.val[0] = vaddq_f32(vsrcC32x4x4_1.val[0], vbasis32x4_1);
+        vsrcC32x4x4_1.val[1] = vaddq_f32(vsrcC32x4x4_1.val[1], vbasis32x4_1);
+        vsrcC32x4x4_1.val[2] = vaddq_f32(vsrcC32x4x4_1.val[2], vbasis32x4_1);
+        vsrcC32x4x4_1.val[3] = vaddq_f32(vsrcC32x4x4_1.val[3], vbasis32x4_1);
+    }
+
+    if (bRelu)
+    {
+        uint32x4_t vmask;
+        float32x4_t vzero;
+        vmask = veorq_u32(vmask, vmask);
+        vzero = vreinterpretq_f32_u32(vmask);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[0], vzero);
+        vsrcC32x4x4_0.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[1], vzero);
+        vsrcC32x4x4_0.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[2], vzero);
+        vsrcC32x4x4_0.val[2] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[3], vzero);
+        vsrcC32x4x4_0.val[3] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[3]);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[0], vzero);
+        vsrcC32x4x4_1.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[1], vzero);
+        vsrcC32x4x4_1.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[2], vzero);
+        vsrcC32x4x4_1.val[2] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[3], vzero);
+        vsrcC32x4x4_1.val[3] = vbslq_f32(vmask, vzero, vsrcC32x4x4_1.val[3]);
+    }
+    else if (pPrelu)
+    {
+        uint32x4_t vmask;
+        float32x4_t vscale32x4, vmul, vzero;
+        vmask = veorq_u32(vmask, vmask);
+        vzero = vreinterpretq_f32_u32(vmask);
+        if (bSharedPrelu) /* all channel use same prelu */
+            vscale32x4 = vdupq_n_f32(pPrelu[0]);
+        else
+            vscale32x4 = vld1q_f32(pPrelu);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[0], vscale32x4[0]);
+        vsrcC32x4x4_0.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[1], vscale32x4[0]);
+        vsrcC32x4x4_0.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[2], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[2], vscale32x4[0]);
+        vsrcC32x4x4_0.val[2] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[3], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[3], vscale32x4[0]);
+        vsrcC32x4x4_0.val[3] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[3]);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[0], vscale32x4[0]);
+        vsrcC32x4x4_1.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[1], vscale32x4[0]);
+        vsrcC32x4x4_1.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[2], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[2], vscale32x4[0]);
+        vsrcC32x4x4_1.val[2] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_1.val[3], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_1.val[3], vscale32x4[0]);
+        vsrcC32x4x4_1.val[3] = vbslq_f32(vmask, vmul, vsrcC32x4x4_1.val[3]);
+    }
+
+    vst1q_f32_x4(pC,     vsrcC32x4x4_0);
+    vst1q_f32_x4(pC+N,   vsrcC32x4x4_1);
 }
 
 static void sgemm1xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
+    uint32_t KDiv4 = K>>2;
+    uint32_t KHas2 = (K>>1)&1;
+    uint32_t KHas1 = K&1;
 
+    uint32x4_t vzero;
+    float32x4x4_t vsrcC32x4x4_0;
+    vzero = veorq_u32(vzero, vzero);
+    vsrcC32x4x4_0.val[0] = vreinterpretq_f32_u32(vzero);
+    vsrcC32x4x4_0.val[1] = vsrcC32x4x4_0.val[0];
+    vsrcC32x4x4_0.val[2] = vsrcC32x4x4_0.val[0];
+
+    /* A:1x4 B:4x16 C:1x16 */
+    for (uint32_t i = 0; i < KDiv4; ++i)
+    {
+        float *pCurB = pB+i*64;
+        float *pCurA = pA+i*4;
+        float32x4_t vsrcA32x4;
+        float32x4x4_t vsrcB32x4x4, vsrcB32x4x4_1, vsrcB32x4x4_2;  /* 12 registers */
+
+        /* row0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcA32x4   = vld1q_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[0]);
+        ARM_LOAD_PREFETCH_16(pCurA);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[0]);
+        vsrcB32x4x4_1 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+
+        /* row1 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4[1]);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4[1]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4_1.val[2], vsrcA32x4[1]);
+        vsrcB32x4x4_2 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4_1.val[3], vsrcA32x4[1]);
+
+        /* row2 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4_2.val[0], vsrcA32x4[2]);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4_2.val[1], vsrcA32x4[2]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4_2.val[2], vsrcA32x4[2]);
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4_2.val[3], vsrcA32x4[2]);
+
+        /* row3 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[3]);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[3]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x4[3]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x4[3]);
+    }
+
+    /* A:1x2 B:2x16 C:1x16 */
+    if (KHas2)
+    {
+        float *pCurB = pB+KDiv4*64;
+        float *pCurA = pA+KDiv4*4;
+        float32x2_t vsrcA32x2;
+        float32x4x4_t vsrcB32x4x4, vsrcB32x4x4_1;
+
+        /* row0 */
+        vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcA32x2   = vld1_f32(pCurA);
+        pCurA += 4;
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], vsrcA32x2[0]);
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], vsrcA32x2[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], vsrcA32x2[0]);
+        vsrcB32x4x4_1 = vld1q_f32_x4(pCurB);
+        pCurB += 16;
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], vsrcA32x2[0]);
+
+        /* row1 */
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4_1.val[0], vsrcA32x2[1]);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4_1.val[1], vsrcA32x2[1]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4_1.val[2], vsrcA32x2[1]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4_1.val[3], vsrcA32x2[1]);
+    }
+
+    /* A:1x1 B:1x16 C:1x16 */
+    if (KHas1)
+    {
+        float *pCurB = pB+(K-1)*16;
+        float *pCurA = pA+(K-1);
+        float32x4x4_t vsrcB32x4x4 = vld1q_f32_x4(pCurB);
+        vsrcC32x4x4_0.val[0] = vmlaq_n_f32(vsrcC32x4x4_0.val[0], vsrcB32x4x4.val[0], pCurA[0]);
+        vsrcC32x4x4_0.val[1] = vmlaq_n_f32(vsrcC32x4x4_0.val[1], vsrcB32x4x4.val[1], pCurA[0]);
+        vsrcC32x4x4_0.val[2] = vmlaq_n_f32(vsrcC32x4x4_0.val[2], vsrcB32x4x4.val[2], pCurA[0]);
+        vsrcC32x4x4_0.val[3] = vmlaq_n_f32(vsrcC32x4x4_0.val[3], vsrcB32x4x4.val[3], pCurA[0]);
+    }
+
+    if (pBasis)
+    {
+        /* one basis for one channel */
+        float32x4_t vbasis32x4_0 = vdupq_n_f32(pBasis[0]);
+        vsrcC32x4x4_0.val[0] = vaddq_f32(vsrcC32x4x4_0.val[0], vbasis32x4_0);
+        vsrcC32x4x4_0.val[1] = vaddq_f32(vsrcC32x4x4_0.val[1], vbasis32x4_0);
+        vsrcC32x4x4_0.val[2] = vaddq_f32(vsrcC32x4x4_0.val[2], vbasis32x4_0);
+        vsrcC32x4x4_0.val[3] = vaddq_f32(vsrcC32x4x4_0.val[3], vbasis32x4_0);
+    }
+
+    if (bRelu)
+    {
+        uint32x4_t vmask;
+        float32x4_t vzero;
+        vmask = veorq_u32(vmask, vmask);
+        vzero = vreinterpretq_f32_u32(vmask);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[0], vzero);
+        vsrcC32x4x4_0.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[1], vzero);
+        vsrcC32x4x4_0.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[2], vzero);
+        vsrcC32x4x4_0.val[2] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[3], vzero);
+        vsrcC32x4x4_0.val[3] = vbslq_f32(vmask, vzero, vsrcC32x4x4_0.val[3]);
+    }
+    else if (pPrelu)
+    {
+        uint32x4_t vmask;
+        float32x4_t vmul, vzero;
+        vmask = veorq_u32(vmask, vmask);
+        vzero = vreinterpretq_f32_u32(vmask);
+
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[0], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[0], pPrelu[0]);
+        vsrcC32x4x4_0.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[0]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[1], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[1], pPrelu[0]);
+        vsrcC32x4x4_0.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[1]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[2], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[2], pPrelu[0]);
+        vsrcC32x4x4_0.val[2] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[2]);
+        vmask                = vcleq_f32(vsrcC32x4x4_0.val[3], vzero);
+        vmul                 = vmulq_n_f32(vsrcC32x4x4_0.val[3], pPrelu[0]);
+        vsrcC32x4x4_0.val[3] = vbslq_f32(vmask, vmul, vsrcC32x4x4_0.val[3]);
+    }
+
+    vst1q_f32_x4(pC,     vsrcC32x4x4_0);
 }
 
 void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
@@ -1231,6 +2485,10 @@ void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
         sgemm4xKx16_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += i*4*K;
         pC += i*4*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 4;
+        if (NULL != pBasis)
+            pBasis += 4;
     }
 
     if (MHas2)
@@ -1238,6 +2496,10 @@ void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
         sgemm2xKx16_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 2;
+        if (NULL != pBasis)
+            pBasis += 2;
     }
 
     if (MHas1)
@@ -1716,6 +2978,10 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
         sgemm4xKx8_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += i*4*K;
         pC += i*4*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 4;
+        if (NULL != pBasis)
+            pBasis += 4;
     }
 
     if (MHas2)
@@ -1723,6 +2989,10 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
         sgemm2xKx8_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 2;
+        if (NULL != pBasis)
+            pBasis += 2;
     }
 
     if (MHas1)
@@ -2089,6 +3359,10 @@ void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
         sgemm4xKx4_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += i*4*K;
         pC += i*4*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 4;
+        if (NULL != pBasis)
+            pBasis += 4;
     }
 
     if (MHas2)
@@ -2096,6 +3370,10 @@ void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
         sgemm2xKx4_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 2;
+        if (NULL != pBasis)
+            pBasis += 2;
     }
 
     if (MHas1)
@@ -2465,6 +3743,10 @@ void sgemmMxKx2_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
         sgemm4xKx2_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += i*4*K;
         pC += i*4*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 4;
+        if (NULL != pBasis)
+            pBasis += 4;
     }
 
     if (MHas2)
@@ -2472,6 +3754,10 @@ void sgemmMxKx2_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
         sgemm2xKx2_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 2;
+        if (NULL != pBasis)
+            pBasis += 2;
     }
 
     if (MHas1)
@@ -2688,10 +3974,7 @@ static void sgemm1xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     }
 
     if (pBasis)
-    {
-        /* one basis for one channel */
         *pC += pBasis[0];
-    }
 
     if (bRelu)
     {
@@ -2717,6 +4000,10 @@ void sgemmMxKx1_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
         sgemm4xKx1_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += i*4*K;
         pC += i*4*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 4;
+        if (NULL != pBasis)
+            pBasis += 4;
     }
 
     if (MHas2)
@@ -2724,6 +4011,10 @@ void sgemmMxKx1_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
         sgemm2xKx1_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
+        if ((NULL != pPrelu) && (!bSharedPrelu))
+            pPrelu += 2;
+        if (NULL != pBasis)
+            pBasis += 2;
     }
 
     if (MHas1)
