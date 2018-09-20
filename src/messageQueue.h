@@ -75,6 +75,8 @@ struct im2colJobInfo
     uint32_t padH;
     uint32_t dilateW;
     uint32_t dilateH;
+    uint32_t height;
+    uint32_t width;
     enum SGEMM_DataType outType;
 };
 

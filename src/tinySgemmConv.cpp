@@ -383,6 +383,8 @@ int tinySgemmConv(void *pInstance,
             pMsg->JobInfo.im2colInfo.padW     = psgemmInstance->padW;
             pMsg->JobInfo.im2colInfo.dilateH  = psgemmInstance->dilateH;
             pMsg->JobInfo.im2colInfo.dilateW  = psgemmInstance->dilateW;
+            pMsg->JobInfo.im2colInfo.height   = psgemmInstance->inputH;
+            pMsg->JobInfo.im2colInfo.width    = psgemmInstance->inputW;
             pMsg->JobInfo.im2colInfo.outType  = packBDataType;
             pMsg->JobInfo.im2colInfo.pB       = pInput + i*psgemmInstance->inputH*psgemmInstance->inputW;
             pMsg->JobInfo.im2colInfo.pBIm2col = psgemmInstance->pIm2colB + i*psgemmInstance->kernelH*psgemmInstance->kernelW*N*packBTypeSize;

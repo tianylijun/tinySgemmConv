@@ -381,7 +381,13 @@ void * sgemm_thread_process(void *args)
             break;
         case MSG_CMD_IM2COL:
             /* call inm2col to finish the job */
-
+            im2col_channel_fp32_fp32 (pMsg->JobInfo.im2colInfo.pB,
+                                      pMsg->JobInfo.im2colInfo.height, pMsg->JobInfo.im2colInfo.width,
+                                      pMsg->JobInfo.im2colInfo.kernelH, pMsg->JobInfo.im2colInfo.kernelW,
+                                      pMsg->JobInfo.im2colInfo.padH, pMsg->JobInfo.im2colInfo.padW,
+                                      pMsg->JobInfo.im2colInfo.strideH, pMsg->JobInfo.im2colInfo.strideW,
+                                      pMsg->JobInfo.im2colInfo.dilateH, pMsg->JobInfo.im2colInfo.dilateW,
+                                      (float *)pMsg->JobInfo.im2colInfo.pBIm2col);
             break;
         case MSG_CMD_EXIT:
             deadloop = 0;
