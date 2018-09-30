@@ -23,6 +23,12 @@
 #include "innerTinySgemmConv.h"
 #include "sgemm.h"
 
+#ifdef __aarch64__
+#define VMLAQ_N_F32(a,b,c,d) vfmaq_laneq_f32(a, b, c, d)
+#else
+#define VMLAQ_N_F32(a,b,c,d) vmlaq_lane_f32(a, b, c, d)
+#endif
+
 /* fp32 unit sgemm block is, A:4x4  B:4x24 C:4x24 */
 static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {

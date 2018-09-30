@@ -21,6 +21,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define IN
+#define OUT
+#define INOUT
+
 #ifndef MAX_CORE_NUMBER
 #define MAX_CORE_NUMBER (32U)
 #endif
@@ -45,24 +49,26 @@ enum TINY_SGEMM_CONV_DATA_MODE
 extern "C" {
 #endif
 
-int tinySgemmConvInit(uint32_t num_threads, int32_t stack_size, uint32_t (*affinity)[MAX_CORE_NUMBER], void **pCtx);
+int tinySgemmConvInit(IN uint32_t num_threads, IN int32_t stack_size, IN uint32_t (*affinity)[MAX_CORE_NUMBER], OUT void **pCtx);
 
 /* pCtx param is return by  tinySgemmConvInit */
-void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
-                                  uint32_t inChannels,  uint32_t inputH, uint32_t inputW,
-                                  uint32_t outChannels, uint32_t kernelH, uint32_t kernelW,
-                                  uint32_t padH, uint32_t padW,
-                                  uint32_t strideH, uint32_t strideW,
-                                  uint32_t dilateH, uint32_t dilateW,
-                                  enum TINY_SGEMM_CONV_DATA_MODE mode);
-/* pInstance param is return by  tinySgemmConvCreateInstance */
-int tinySgemmConv(void *pInstance,
-                  void *pInput, void *pOutPut,
-                  float *pBasis, bool bRelu, float *pPrelu, bool bSharedPrelu,
-                  float (*int8Scale)[3], enum TINY_SGEMM_CONV_DATA_MODE mode);
+void* tinySgemmConvCreateInstance(IN void *pCtx, IN void *pWeight,
+                                  IN uint32_t inChannels, IN uint32_t inputH, IN uint32_t inputW,
+                                  IN uint32_t outChannels, IN uint32_t kernelH, IN uint32_t kernelW,
+                                  IN uint32_t padH, IN uint32_t padW,
+                                  IN uint32_t strideH, IN uint32_t strideW,
+                                  IN uint32_t dilateH, IN uint32_t dilateW,
+                                  IN enum TINY_SGEMM_CONV_DATA_MODE mode);
 
-int tinySgemmConvReleaseInstance(void *pInstance);
-int tinySgemmConvDeinit(void *pCtx);
+/* pInstance param is return by  tinySgemmConvCreateInstance */
+int tinySgemmConvProcess(IN void *pInstance,
+                         IN float *pInput, IN float *pOutput,
+                         IN float *pBasis, IN bool bRelu, IN float *pPrelu, IN bool bSharedPrelu,
+                         IN float (*int8Scale)[3],
+                         IN enum TINY_SGEMM_CONV_DATA_MODE mode);
+
+int tinySgemmConvReleaseInstance(IN void *pInstance);
+int tinySgemmConvDeinit(IN void *pCtx);
 
 #ifdef __cplusplus
 }

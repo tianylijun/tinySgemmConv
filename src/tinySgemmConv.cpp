@@ -326,11 +326,11 @@ int tinySgemmConvReleaseInstance(void *pInstance)
     return 0;
 }
 
-int tinySgemmConv(void *pInstance,
-                  float *pInput, float *pOutput,
-                  float *pBasis, bool bRelu, float *pPrelu, bool bSharedPrelu,
-                  float (*int8Scale)[3],
-                  enum TINY_SGEMM_CONV_DATA_MODE mode)
+int tinySgemmConvProcess(void *pInstance,
+                         float *pInput, float *pOutput,
+                         float *pBasis, bool bRelu, float *pPrelu, bool bSharedPrelu,
+                         float (*int8Scale)[3],
+                         enum TINY_SGEMM_CONV_DATA_MODE mode)
 {
     uint32_t i, M, N, K, packBTypeSize, blockN, leftN;
     struct list_head jobsQueue;
@@ -338,7 +338,7 @@ int tinySgemmConv(void *pInstance,
     struct tinySgemmConvCtx *pCtxInner;
     struct tinySgemmInstance *psgemmInstance = (struct tinySgemmInstance *)pInstance;
 
-    if ((NULL == pInstance) || (NULL == pInput) || (NULL == pOutput))
+    if (NULL == pInstance || NULL == pInput || NULL == pOutput)
     {
         printf("%s, %p %p %p\n", "NULL pointer", pInstance, pInput, pOutput);
         return -1;
@@ -450,7 +450,7 @@ int tinySgemmConv(void *pInstance,
         list_add_tail(&pMsg->listJobsQueue, &jobsQueue);
     }
     waitForJobsDone(pCtxInner, &jobsQueue);
-    TIME_STAMP_END(beg, end, "im2col");
+    TIME_STAMP_END(beg, end, "SGEMM");
     return 0;
 }
 
