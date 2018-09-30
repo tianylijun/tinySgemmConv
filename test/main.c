@@ -6,22 +6,22 @@
 
 int main(int argc, char const *argv[])
 {
-    int ret = 0, i = 1, loopCnt = 1, num_threads = 4;
-    uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0, strideW = 0, strideH = 0, outChannels = 128, outputW, outputH, M, N, K;
+    int ret = 0, i = 1, loopCnt = 1, num_threads = 1;
+    uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0, strideW = 1, strideH = 1, outChannels = 128, dilateW = 0, dilateH = 0, outputW, outputH, M, N, K;
     void *pCtx, *psgemmInstance;
     uint32_t affinity[MAX_CORE_NUMBER] = {1<<0, 1<<1, 1<<2, 1<<3};
     struct timeval beg, end;
 
-    if (argc > i) inChannels = atoi(argv[++i]);
-    if (argc > i) inputW = atoi(argv[++i]);
-    if (argc > i) inputH = atoi(argv[++i]);
-    if (argc > i) kernelW = atoi(argv[++i]);
-    if (argc > i) kernelH = atoi(argv[++i]);
-    if (argc > i) padW = atoi(argv[++i]);
-    if (argc > i) padH = atoi(argv[++i]);
-    if (argc > i) strideW = atoi(argv[++i]);
-    if (argc > i) strideH = atoi(argv[++i]);
-    if (argc > i) outChannels = atoi(argv[++i]);
+    if (argc > 1) inChannels = atoi(argv[1]);
+    if (argc > 2) inputW = atoi(argv[2]);
+    if (argc > 3) inputH = atoi(argv[3]);
+    if (argc > 4) kernelW = atoi(argv[4]);
+    if (argc > 5) kernelH = atoi(argv[5]);
+    if (argc > 6) padW = atoi(argv[6]);
+    if (argc > 7) padH = atoi(argv[7]);
+    if (argc > 8) strideW = atoi(argv[8]);
+    if (argc > 9) strideH = atoi(argv[9]);
+    if (argc > 10) outChannels = atoi(argv[10]);
 
     outputW = (inputW + padW*2 - kernelW)/strideW + 1;
     outputH = (inputH + padH*2 - kernelH)/strideH + 1;
@@ -51,16 +51,15 @@ int main(int argc, char const *argv[])
     for (i = 0; i < K * N; i++) pInput[i]  = rand()/10000.0f;
 
     ret =  tinySgemmConvInit(num_threads, THREAD_STACK_SIZE, &affinity, &pCtx);
-    printf("%s, ret: %d\n", "tinySgemmConvInit", ret);
-    psgemmInstance = tinySgemmConvCreateInstance (pCtx,
-                     pWeight, /* conv weight */
-                     3,  300, 300, /* inChannels, inputH, inputW */
-                     128, 3, 3,    /* outChannels, kernelH, kernelW */
-                     0, 0,         /* pad */
-                     0, 0,         /* stride */
-                     0, 0,         /* dilate */
+
+    psgemmInstance = tinySgemmConvCreateInstance(pCtx,
+                     pWeight,
+                     inChannels,  inputH, inputW,
+                     outChannels, kernelH, kernelW,
+                     padH, padW,
+                     strideH, strideW,
+                     dilateH, dilateW,
                      TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
-    printf("%s, psgemmInstance: %p\n", "tinySgemmConvCreateInstance", psgemmInstance);
 
     gettimeofday(&beg, NULL);
 
@@ -75,6 +74,7 @@ int main(int argc, char const *argv[])
     printf("\ntime: %ld ms, avg time : %.3f ms, loop: %d threads: %d\n", (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/(1000.0*loopCnt), loopCnt, num_threads);
 
     ret = tinySgemmConvReleaseInstance(psgemmInstance);
+
     ret = tinySgemmConvDeinit(pCtx);
 
     if (pWeight)

@@ -26,6 +26,7 @@
 struct thread_info
 {
     uint32_t index;
+    uint32_t status;
     uint32_t maxFrequence;
     uint32_t bigCore;
     pthread_t thread_id;

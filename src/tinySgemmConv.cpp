@@ -50,7 +50,7 @@ int tinySgemmConvInit
     void **pCtx
 )
 {
-    int32_t ret = 0;
+    int32_t ret = 0, threadsStatusCheck = 1;
     uint32_t availCores = 0;
     struct thread_info *pThreadInfo = NULL;
     pthread_attr_t attr;
@@ -140,6 +140,19 @@ int tinySgemmConvInit
             free(pCtxInner);
             return -6;
         }
+    }
+
+    while(threadsStatusCheck)
+    {
+        usleep(5000);
+        uint32_t status = 0;
+        for (uint32_t i = 0; i < num_threads; i++)
+        {
+            if (pThreadInfo[i].status)
+                status++;
+        }
+        if (num_threads == status)
+            threadsStatusCheck = 0;
     }
 
     if (-1 != stack_size)
@@ -243,7 +256,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
         packBDataType = FLOAT32_TYPE;
         break;
     }
-
+    printf("%s %d\n", __func__, __LINE__);
     if (kernelW == 1 && kernelH == 1 && strideH == 1 && strideW == 1 && padH == 0 && padW == 0)
     {
         pIm2colB      = NULL;

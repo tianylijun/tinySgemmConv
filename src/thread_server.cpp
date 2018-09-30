@@ -212,14 +212,15 @@ void * sgemm_thread_process(void *args)
         return NULL;
     }
     printf("thread %d start\n", pThreadInfo->index);
+    pThreadInfo->status = 1;
 
     while(deadloop)
     {
         struct msg *pMsg = rcvMsg(pThreadInfo);
-        WMB;
-
+        assert(NULL != pMsg);
         pMsg->status = MSG_STATUS_BUSY;
         pMsg->timeStampBeg = timestamp();
+        printf("thread [%d] rcvMsg %d \n", pThreadInfo->index, pMsg->cmd);
         switch(pMsg->cmd)
         {
         case MSG_CMD_SGEMM:
@@ -397,14 +398,14 @@ void * sgemm_thread_process(void *args)
             INIT_LIST_HEAD(&pThreadInfo->msgQueueList);
             break;
         }
+
         pMsg->timeStampEnd = timestamp();
         pthread_mutex_lock(&pMsg->lock);
         pMsg->status = MSG_STATUS_DONE;
         pthread_cond_signal(&pMsg->jobDoneCondition);
         pthread_mutex_unlock(&pMsg->lock);
 
-        WMB;
-        printf("process msg, %d\n", pMsg->cmd);
+        printf("[%d] process msg, %d\n", pThreadInfo->index, pMsg->cmd);
     }
 
     printf("thread %d exit\n", pThreadInfo->index);
