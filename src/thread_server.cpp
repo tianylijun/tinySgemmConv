@@ -220,7 +220,7 @@ void * sgemm_thread_process(void *args)
         assert(NULL != pMsg);
         pMsg->status = MSG_STATUS_BUSY;
         pMsg->timeStampBeg = timestamp();
-        printf("thread [%d] rcvMsg %d \n", pThreadInfo->index, pMsg->cmd);
+        printf("thread [%d] rcvMsg %s \n", pThreadInfo->index, MSG2STR(pMsg->cmd));
         switch(pMsg->cmd)
         {
         case MSG_CMD_SGEMM:
@@ -397,6 +397,9 @@ void * sgemm_thread_process(void *args)
             /* clear msg queue */
             INIT_LIST_HEAD(&pThreadInfo->msgQueueList);
             break;
+        default:
+            printf("msg %s not process\n", MSG2STR(pMsg->cmd));
+            break;
         }
 
         pMsg->timeStampEnd = timestamp();
@@ -405,7 +408,7 @@ void * sgemm_thread_process(void *args)
         pthread_cond_signal(&pMsg->jobDoneCondition);
         pthread_mutex_unlock(&pMsg->lock);
 
-        printf("[%d] process msg, %d\n", pThreadInfo->index, pMsg->cmd);
+        printf("[%d] process msg, %s\n", pThreadInfo->index, MSG2STR(pMsg->cmd));
     }
 
     printf("thread %d exit\n", pThreadInfo->index);

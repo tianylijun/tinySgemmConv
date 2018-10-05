@@ -142,9 +142,10 @@ int tinySgemmConvInit
         }
     }
 
+    /* wait all thread init ok */
     while(threadsStatusCheck)
     {
-        usleep(5000);
+        usleep(2000);
         uint32_t status = 0;
         for (uint32_t i = 0; i < num_threads; i++)
         {

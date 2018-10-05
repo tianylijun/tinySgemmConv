@@ -33,8 +33,27 @@ enum MSG_CMD
 {
     MSG_CMD_EXIT,
     MSG_CMD_SGEMM,
-    MSG_CMD_IM2COL
+    MSG_CMD_IM2COL,
+
+    MSG_CMD_END
 };
+
+struct MSG_STR
+{
+    enum MSG_CMD cmd;
+    const char *desc;
+};
+
+static struct MSG_STR msg_str_map[MSG_CMD_END+1] =
+{
+    {MSG_CMD_EXIT,   "MSG_CMD_EXIT"},
+    {MSG_CMD_SGEMM,  "MSG_CMD_SGEMM"},
+    {MSG_CMD_IM2COL, "MSG_CMD_IM2COL"},
+
+    {MSG_CMD_END,    "MSG_CMD_END"},
+};
+
+#define MSG2STR(x) msg_str_map[(x)].desc
 
 enum SGEMM_DataType
 {
