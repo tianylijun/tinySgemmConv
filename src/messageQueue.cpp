@@ -84,6 +84,10 @@ void sendMsg(struct msg *pMsg)
 {
     POINTER_CHECK_NO_RET(pMsg);
     POINTER_CHECK_NO_RET(pMsg->pThreadInfo);
+    if (MSG_CMD_IM2COL == pMsg->cmd)
+    {
+        printf("msg send to thread %d [%s]\n", pMsg->pThreadInfo->index, MSG2STR(pMsg->cmd));
+    }
     pthread_mutex_lock(&pMsg->pThreadInfo->msgQueueLock);
     list_add_tail(&pMsg->listMsgQueue, &pMsg->pThreadInfo->msgQueueList);
     pthread_cond_signal(&pMsg->pThreadInfo->msgQueueNoEmpty);

@@ -257,7 +257,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
         packBDataType = FLOAT32_TYPE;
         break;
     }
-    printf("%s %d\n", __func__, __LINE__);
+
     if (kernelW == 1 && kernelH == 1 && strideH == 1 && strideW == 1 && padH == 0 && padW == 0)
     {
         pIm2colB      = NULL;
@@ -276,6 +276,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     }
 
     packBSize = alignSize(K*TINY_SGEMM_UNIT_N*packBTypeSize, MALLOC_MEM_ALIGN);
+    /* packB(num_threads) + packA */
     pPackB = (uint8_t *)tinySgemmMalloc(pCtxInner->num_threads*packBSize + M*K*packATypeSize);
     if (NULL == pPackB)
     {
@@ -318,6 +319,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     psgemmInstance->dilateW            = dilateW;
     psgemmInstance->pPackA             = pPackA;
     psgemmInstance->pIm2colB           = pIm2colB;
+    assert(pCtxInner->num_threads <= MAX_CORE_NUMBER);
     for (i = 0; i < pCtxInner->num_threads; ++i)
         psgemmInstance->pPackB[i]      = (uint8_t *)pPackB + i*packBSize;
     psgemmInstance->packATypeSize      = packATypeSize;
@@ -385,8 +387,9 @@ int tinySgemmConvProcess(void *pInstance,
 
         for (i = 0; i < psgemmInstance->inChannels; ++i)
         {
-            struct thread_info *pThreadInfo   = getMinJobsNumThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_SGEMM);
+            struct thread_info *pThreadInfo   = getMinJobsNumThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_IM2COL);
             struct msg *pMsg                  = fetchMsg(pCtxInner);
+            assert(NULL != pMsg);
             pMsg->pThreadInfo                 = pThreadInfo;
             pMsg->cmd                         = MSG_CMD_IM2COL;
             pMsg->JobInfo.im2colInfo.kernelH  = psgemmInstance->kernelH;
@@ -416,6 +419,7 @@ int tinySgemmConvProcess(void *pInstance,
     {
         struct thread_info *pThreadInfo  = getMinJobsNumThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_SGEMM);
         struct msg *pMsg                 = fetchMsg(pCtxInner);
+        assert(NULL != pMsg);
         pMsg->pThreadInfo                = pThreadInfo;
         pMsg->cmd                        = MSG_CMD_SGEMM;
         pMsg->JobInfo.sgemmInfo.M        = psgemmInstance->M;

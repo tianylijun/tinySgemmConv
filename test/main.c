@@ -7,7 +7,7 @@
 int main(int argc, char const *argv[])
 {
     int ret = 0, i = 1, loopCnt = 1, num_threads = 4;
-    uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0, strideW = 1, strideH = 1, outChannels = 128, dilateW = 0, dilateH = 0, outputW, outputH, M, N, K;
+    uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0, strideW = 1, strideH = 1, outChannels = 128, dilateW = 1, dilateH = 1, outputW, outputH, M, N, K;
     void *pCtx, *psgemmInstance;
     uint32_t affinity[MAX_CORE_NUMBER] = {1<<0, 1<<1, 1<<2, 1<<3};
     struct timeval beg, end;
