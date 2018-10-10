@@ -6,10 +6,11 @@
 
 int main(int argc, char const *argv[])
 {
-    int ret = 0, i = 1, loopCnt = 1, num_threads = 4;
+    int ret = 0, i = 1, loopCnt = 5, num_threads = 4;
     uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0, strideW = 1, strideH = 1, outChannels = 128, dilateW = 1, dilateH = 1, outputW, outputH, M, N, K;
     void *pCtx, *psgemmInstance;
-    uint32_t affinity[MAX_CORE_NUMBER] = {1<<0, 1<<1, 1<<2, 1<<3};
+    //uint32_t affinity[MAX_CORE_NUMBER] = {1<<1, 1<<2, 1<<3, 1<<4};
+    uint32_t affinity[MAX_CORE_NUMBER] = {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff};
     struct timeval beg, end;
 
     if (argc > 1)  inChannels   = atoi(argv[1]);
@@ -39,7 +40,7 @@ int main(int argc, char const *argv[])
            outChannels, outputW, outputH);
 
     float *pWeight = malloc(M*K*sizeof(float));
-    float *pInput  = malloc(inputW*inputH*sizeof(float));
+    float *pInput  = malloc(inChannels*inputW*inputH*sizeof(float));
     float *pOutput = malloc(M*N*sizeof(float));
     if (NULL == pWeight || NULL == pInput || NULL == pOutput)
     {
@@ -48,9 +49,10 @@ int main(int argc, char const *argv[])
     }
 
     for (i = 0; i < M * K; i++)           pWeight[i] = rand()/10000.0f;
-    for (i = 0; i < inputW * inputH; i++) pInput[i]  = rand()/10000.0f;
+    for (i = 0; i < inChannels*inputW * inputH; i++) pInput[i]  = rand()/10000.0f;
 
     ret =  tinySgemmConvInit(num_threads, THREAD_STACK_SIZE, &affinity, &pCtx);
+    printf("Init ok\n");
     psgemmInstance = tinySgemmConvCreateInstance(pCtx,
                      pWeight,
                      inChannels,  inputH, inputW,
@@ -59,6 +61,7 @@ int main(int argc, char const *argv[])
                      strideH, strideW,
                      dilateH, dilateW,
                      TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
+    printf("Instance create ok\n");
 
     gettimeofday(&beg, NULL);
 
@@ -69,10 +72,8 @@ int main(int argc, char const *argv[])
 
     gettimeofday(&end, NULL);
     printf("\ntime: %ld ms, avg time : %.3f ms, loop: %d threads: %d\n", (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/(1000.0*loopCnt), loopCnt, num_threads);
-
     ret = tinySgemmConvReleaseInstance(psgemmInstance);
     ret = tinySgemmConvDeinit(pCtx);
-
     if (pWeight)
         free(pWeight);
     if (pInput)

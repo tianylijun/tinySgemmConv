@@ -1106,8 +1106,8 @@ void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx24_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
-        pA += i*4*K;
-        pC += i*4*N;
+        pA += 4*K;
+        pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
             pPrelu += 4;
         if (NULL != pBasis)
@@ -1130,6 +1130,9 @@ void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
 }
 
 /* fp32 unit sgemm block is, A:4x4  B:4x12 C:4x12 */
+#if 1
+extern "C" void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+#else
 static void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
@@ -1150,7 +1153,7 @@ static void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
     {
         float *pCurB = pB+i*48;
         float *pCurA = pA+i*16;
-        float32x4_t vsrcA32x4;     /* 1 registers */
+        float32x4_t vsrcA32x4;     /* 1 register in range Q0 ~ Q7 */
         float32x4x3_t vsrcB32x4x3; /* 3 registers */
 
         vsrcB32x4x3 = vld1q_f32_x3(pCurB);
@@ -1235,46 +1238,43 @@ static void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
     {
         float *pCurB = pB+KDiv4*48;
         float *pCurA = pA+KDiv4*16;
-        float32x4_t vsrcA32x4;     /* 1 registers */
-        float32x4x3_t vsrcB32x4x3; /* 3 registers */
+        float32x4x2_t vsrcA32x4x2; /* 1 register in range Q0 ~ Q7 */
+        float32x4x3_t vsrcB32x4x3, vsrcB32x4x3_1; /* 3 registers */
 
         vsrcB32x4x3 = vld1q_f32_x3(pCurB);
         pCurB += 12;
-        vsrcA32x4   = vld1q_f32(pCurA);
-        pCurA += 4;
-        vsrcC32x4x3_0.val[0] = vmlaq_n_f32(vsrcC32x4x3_0.val[0], vsrcB32x4x3.val[0], vsrcA32x4[0]);
+        vsrcA32x4x2 = vld1q_f32_x2(pCurA);
+        vsrcC32x4x3_0.val[0] = vmlaq_n_f32(vsrcC32x4x3_0.val[0], vsrcB32x4x3.val[0], vsrcA32x4x2.val[0][0]);
         ARM_LOAD_PREFETCH_64(pCurB);
-        vsrcC32x4x3_0.val[1] = vmlaq_n_f32(vsrcC32x4x3_0.val[1], vsrcB32x4x3.val[1], vsrcA32x4[0]);
-        ARM_LOAD_PREFETCH_16(pCurA);
-        vsrcC32x4x3_0.val[2] = vmlaq_n_f32(vsrcC32x4x3_0.val[2], vsrcB32x4x3.val[2], vsrcA32x4[0]);
-        vsrcC32x4x3_1.val[0] = vmlaq_n_f32(vsrcC32x4x3_1.val[0], vsrcB32x4x3.val[0], vsrcA32x4[1]);
-        vsrcC32x4x3_1.val[1] = vmlaq_n_f32(vsrcC32x4x3_1.val[1], vsrcB32x4x3.val[1], vsrcA32x4[1]);
-        vsrcC32x4x3_1.val[2] = vmlaq_n_f32(vsrcC32x4x3_1.val[2], vsrcB32x4x3.val[2], vsrcA32x4[1]);
-        vsrcC32x4x3_2.val[0] = vmlaq_n_f32(vsrcC32x4x3_2.val[0], vsrcB32x4x3.val[0], vsrcA32x4[2]);
-        vsrcC32x4x3_2.val[1] = vmlaq_n_f32(vsrcC32x4x3_2.val[1], vsrcB32x4x3.val[1], vsrcA32x4[2]);
-        vsrcC32x4x3_2.val[2] = vmlaq_n_f32(vsrcC32x4x3_2.val[2], vsrcB32x4x3.val[2], vsrcA32x4[2]);
-        vsrcC32x4x3_3.val[0] = vmlaq_n_f32(vsrcC32x4x3_3.val[0], vsrcB32x4x3.val[0], vsrcA32x4[3]);
-        vsrcC32x4x3_3.val[1] = vmlaq_n_f32(vsrcC32x4x3_3.val[1], vsrcB32x4x3.val[1], vsrcA32x4[3]);
-        vsrcC32x4x3_3.val[2] = vmlaq_n_f32(vsrcC32x4x3_3.val[2], vsrcB32x4x3.val[2], vsrcA32x4[3]);
+		pCurA += 8;
+        vsrcC32x4x3_0.val[1] = vmlaq_n_f32(vsrcC32x4x3_0.val[1], vsrcB32x4x3.val[1], vsrcA32x4x2.val[0][0]);
+        vsrcC32x4x3_0.val[2] = vmlaq_n_f32(vsrcC32x4x3_0.val[2], vsrcB32x4x3.val[2], vsrcA32x4x2.val[0][0]);
+        vsrcC32x4x3_1.val[0] = vmlaq_n_f32(vsrcC32x4x3_1.val[0], vsrcB32x4x3.val[0], vsrcA32x4x2.val[0][1]);
+        vsrcC32x4x3_1.val[1] = vmlaq_n_f32(vsrcC32x4x3_1.val[1], vsrcB32x4x3.val[1], vsrcA32x4x2.val[0][1]);
+        vsrcC32x4x3_1.val[2] = vmlaq_n_f32(vsrcC32x4x3_1.val[2], vsrcB32x4x3.val[2], vsrcA32x4x2.val[0][1]);
+        vsrcC32x4x3_2.val[0] = vmlaq_n_f32(vsrcC32x4x3_2.val[0], vsrcB32x4x3.val[0], vsrcA32x4x2.val[0][2]);
+        vsrcC32x4x3_2.val[1] = vmlaq_n_f32(vsrcC32x4x3_2.val[1], vsrcB32x4x3.val[1], vsrcA32x4x2.val[0][2]);
+        vsrcC32x4x3_2.val[2] = vmlaq_n_f32(vsrcC32x4x3_2.val[2], vsrcB32x4x3.val[2], vsrcA32x4x2.val[0][2]);
+        vsrcC32x4x3_3.val[0] = vmlaq_n_f32(vsrcC32x4x3_3.val[0], vsrcB32x4x3.val[0], vsrcA32x4x2.val[0][3]);
+        vsrcC32x4x3_3.val[1] = vmlaq_n_f32(vsrcC32x4x3_3.val[1], vsrcB32x4x3.val[1], vsrcA32x4x2.val[0][3]);
+        vsrcB32x4x3_1 = vld1q_f32_x3(pCurB);
+        vsrcC32x4x3_3.val[2] = vmlaq_n_f32(vsrcC32x4x3_3.val[2], vsrcB32x4x3.val[2], vsrcA32x4x2.val[0][3]);
 
-        vsrcB32x4x3 = vld1q_f32_x3(pCurB);
         pCurB += 12;
-        vsrcA32x4   = vld1q_f32(pCurA);
-        pCurA += 4;
-        vsrcC32x4x3_0.val[0] = vmlaq_n_f32(vsrcC32x4x3_0.val[0], vsrcB32x4x3.val[0], vsrcA32x4[0]);
+        vsrcC32x4x3_0.val[0] = vmlaq_n_f32(vsrcC32x4x3_0.val[0], vsrcB32x4x3_1.val[0], vsrcA32x4x2.val[1][0]);
         ARM_LOAD_PREFETCH_64(pCurB);
-        vsrcC32x4x3_0.val[1] = vmlaq_n_f32(vsrcC32x4x3_0.val[1], vsrcB32x4x3.val[1], vsrcA32x4[0]);
+        vsrcC32x4x3_0.val[1] = vmlaq_n_f32(vsrcC32x4x3_0.val[1], vsrcB32x4x3_1.val[1], vsrcA32x4x2.val[1][0]);
         ARM_LOAD_PREFETCH_16(pCurA);
-        vsrcC32x4x3_0.val[2] = vmlaq_n_f32(vsrcC32x4x3_0.val[2], vsrcB32x4x3.val[2], vsrcA32x4[0]);
-        vsrcC32x4x3_1.val[0] = vmlaq_n_f32(vsrcC32x4x3_1.val[0], vsrcB32x4x3.val[0], vsrcA32x4[1]);
-        vsrcC32x4x3_1.val[1] = vmlaq_n_f32(vsrcC32x4x3_1.val[1], vsrcB32x4x3.val[1], vsrcA32x4[1]);
-        vsrcC32x4x3_1.val[2] = vmlaq_n_f32(vsrcC32x4x3_1.val[2], vsrcB32x4x3.val[2], vsrcA32x4[1]);
-        vsrcC32x4x3_2.val[0] = vmlaq_n_f32(vsrcC32x4x3_2.val[0], vsrcB32x4x3.val[0], vsrcA32x4[2]);
-        vsrcC32x4x3_2.val[1] = vmlaq_n_f32(vsrcC32x4x3_2.val[1], vsrcB32x4x3.val[1], vsrcA32x4[2]);
-        vsrcC32x4x3_2.val[2] = vmlaq_n_f32(vsrcC32x4x3_2.val[2], vsrcB32x4x3.val[2], vsrcA32x4[2]);
-        vsrcC32x4x3_3.val[0] = vmlaq_n_f32(vsrcC32x4x3_3.val[0], vsrcB32x4x3.val[0], vsrcA32x4[3]);
-        vsrcC32x4x3_3.val[1] = vmlaq_n_f32(vsrcC32x4x3_3.val[1], vsrcB32x4x3.val[1], vsrcA32x4[3]);
-        vsrcC32x4x3_3.val[2] = vmlaq_n_f32(vsrcC32x4x3_3.val[2], vsrcB32x4x3.val[2], vsrcA32x4[3]);
+        vsrcC32x4x3_0.val[2] = vmlaq_n_f32(vsrcC32x4x3_0.val[2], vsrcB32x4x3_1.val[2], vsrcA32x4x2.val[1][0]);
+        vsrcC32x4x3_1.val[0] = vmlaq_n_f32(vsrcC32x4x3_1.val[0], vsrcB32x4x3_1.val[0], vsrcA32x4x2.val[1][1]);
+        vsrcC32x4x3_1.val[1] = vmlaq_n_f32(vsrcC32x4x3_1.val[1], vsrcB32x4x3_1.val[1], vsrcA32x4x2.val[1][1]);
+        vsrcC32x4x3_1.val[2] = vmlaq_n_f32(vsrcC32x4x3_1.val[2], vsrcB32x4x3_1.val[2], vsrcA32x4x2.val[1][1]);
+        vsrcC32x4x3_2.val[0] = vmlaq_n_f32(vsrcC32x4x3_2.val[0], vsrcB32x4x3_1.val[0], vsrcA32x4x2.val[1][2]);
+        vsrcC32x4x3_2.val[1] = vmlaq_n_f32(vsrcC32x4x3_2.val[1], vsrcB32x4x3_1.val[1], vsrcA32x4x2.val[1][2]);
+        vsrcC32x4x3_2.val[2] = vmlaq_n_f32(vsrcC32x4x3_2.val[2], vsrcB32x4x3_1.val[2], vsrcA32x4x2.val[1][2]);
+        vsrcC32x4x3_3.val[0] = vmlaq_n_f32(vsrcC32x4x3_3.val[0], vsrcB32x4x3_1.val[0], vsrcA32x4x2.val[1][3]);
+        vsrcC32x4x3_3.val[1] = vmlaq_n_f32(vsrcC32x4x3_3.val[1], vsrcB32x4x3_1.val[1], vsrcA32x4x2.val[1][3]);
+        vsrcC32x4x3_3.val[2] = vmlaq_n_f32(vsrcC32x4x3_3.val[2], vsrcB32x4x3_1.val[2], vsrcA32x4x2.val[1][3]);
     }
 
     /* A:4x1 B:1x12 C:4x12 */
@@ -1282,7 +1282,7 @@ static void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
     {
         float *pCurB = pB+(K-1)*12;
         float *pCurA = pA+(K-1)*4;
-        float32x4_t vsrcA32x4;     /* 1 registers */
+        float32x4_t vsrcA32x4;     /* 1 register in range Q0 ~ Q7 */
         float32x4x3_t vsrcB32x4x3; /* 3 registers */
 
         vsrcB32x4x3 = vld1q_f32_x3(pCurB);
@@ -1414,6 +1414,7 @@ static void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
     vst1q_f32_x3(pC+2*N, vsrcC32x4x3_2);
     vst1q_f32_x3(pC+3*N, vsrcC32x4x3_3);
 }
+#endif
 
 static void sgemm2xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
@@ -1740,8 +1741,8 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx12_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
-        pA += i*4*K;
-        pC += i*4*N;
+        pA += 4*K;
+        pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
             pPrelu += 4;
         if (NULL != pBasis)
@@ -2489,8 +2490,8 @@ void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx16_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
-        pA += i*4*K;
-        pC += i*4*N;
+        pA += 4*K;
+        pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
             pPrelu += 4;
         if (NULL != pBasis)
@@ -2982,8 +2983,8 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx8_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
-        pA += i*4*K;
-        pC += i*4*N;
+        pA += 4*K;
+        pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
             pPrelu += 4;
         if (NULL != pBasis)
@@ -3363,8 +3364,8 @@ void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx4_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
-        pA += i*4*K;
-        pC += i*4*N;
+        pA += 4*K;
+        pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
             pPrelu += 4;
         if (NULL != pBasis)
@@ -3747,8 +3748,8 @@ void sgemmMxKx2_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx2_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
-        pA += i*4*K;
-        pC += i*4*N;
+        pA += 4*K;
+        pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
             pPrelu += 4;
         if (NULL != pBasis)
@@ -4004,8 +4005,8 @@ void sgemmMxKx1_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx1_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
-        pA += i*4*K;
-        pC += i*4*N;
+        pA += 4*K;
+        pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
             pPrelu += 4;
         if (NULL != pBasis)

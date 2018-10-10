@@ -95,4 +95,15 @@ static inline void list_del(struct list_head *entry)
 #define list_first_entry(head, type, member) \
         list_entry((head)->next, type, member)
 
+static inline uint32_t list_number(const struct list_head *pHead)
+{
+    uint32_t num = 0;
+    struct list_head *pos;
+    list_for_each(pos, pHead)
+    {
+        ++num;
+    }
+    return num;
+}
+
 #endif

@@ -54,7 +54,7 @@ struct tinySgemmConvCtx
 struct tinySgemmInstance
 {
     uint8_t *pPackA;
-    uint8_t *pIm2colB;
+    uint8_t *pBIm2col;
     uint8_t *pPackB[MAX_CORE_NUMBER];
     uint32_t packBTypeSize;
     uint32_t packATypeSize;

@@ -92,13 +92,13 @@ uint32_t getAvaiableCoresMaxFreq(uint32_t (*coreMaxFreqs)[MAX_CORE_NUMBER], uint
     return availCores;
 }
 
-void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *workQueue)
+void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *jobsQueue)
 {
     assert(NULL != pCtx);
-    assert(NULL != workQueue);
-    while (!list_empty(workQueue))
+    assert(NULL != jobsQueue);
+    while (!list_empty(jobsQueue))
     {
-        struct msg *pMsg = list_first_entry(workQueue, struct msg, listJobsQueue);
+        struct msg *pMsg = list_first_entry(jobsQueue, struct msg, listJobsQueue);
         assert(NULL != pMsg);
         pthread_mutex_lock(&pMsg->lock);
         while (MSG_STATUS_DONE != pMsg->status)
@@ -191,7 +191,7 @@ void * sgemm_thread_process(void *args)
             }
         }
         else
-            printf("\033[43mWarning:: skip set thread %d affinity(0x%x), as core not avaiable\n", pThreadInfo->index, pThreadInfo->affinity);
+            printf("Warning:: skip set thread %d affinity(0x%x), as core not avaiable\n", pThreadInfo->index, pThreadInfo->affinity);
 #ifdef DEBUG_AFFINETY
         showAffinty(pThreadInfo);
 #endif
@@ -220,15 +220,16 @@ void * sgemm_thread_process(void *args)
         assert(NULL != pMsg);
         pMsg->status = MSG_STATUS_BUSY;
         pMsg->timeStampBeg = timestamp();
-        printf("thread [%d] rcvMsg %s \n", pThreadInfo->index, MSG2STR(pMsg->cmd));
+        //printf("[%llu] thread [%d][%d] rcvMsg %s\n", pMsg->sequenceId, pThreadInfo->index, list_number(&pThreadInfo->msgQueueList), MSG2STR(pMsg->cmd));
         switch(pMsg->cmd)
         {
         case MSG_CMD_SGEMM:
-            /* call sgemm top finish the job */
+            /* call sgemm finish the job */
             if (TINY_SGEMM_UNIT_N == pMsg->JobInfo.sgemmInfo.n)
             {
-                /* do  TINY_SGEMM_UNIT_M * K * TINY_SGEMM_UNIT_N */
-                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+                /* do TINY_SGEMM_UNIT_M * K * TINY_SGEMM_UNIT_N */
+                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && 
+                    FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
                     /* packB K*TINY_SGEMM_UNIT_N */
                     tinySgemmConvPackBUnitN_fp32_fp32((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
@@ -281,8 +282,9 @@ void * sgemm_thread_process(void *args)
                 NHas2  = (N>>1)&1;
                 NHas1  = N&1;
 
-                /* do  TINY_SGEMM_UNIT_M * K * leftN */
-                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+                /* do TINY_SGEMM_UNIT_M * K * leftN */
+                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && 
+                    FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
                     /* packB K*leftN */
                     tinySgemmConvPackBLeftN_fp32_fp32((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
@@ -383,14 +385,17 @@ void * sgemm_thread_process(void *args)
         case MSG_CMD_IM2COL:
             if (FLOAT32_TYPE == pMsg->JobInfo.im2colInfo.outType)
             {
-                im2col_channel_fp32_fp32 (pMsg->JobInfo.im2colInfo.pB,
-                                          pMsg->JobInfo.im2colInfo.height, pMsg->JobInfo.im2colInfo.width,
+                im2col_channel_fp32_fp32 (pMsg->JobInfo.im2colInfo.pB,      (float *)pMsg->JobInfo.im2colInfo.pBIm2col,
+                                          pMsg->JobInfo.im2colInfo.height,  pMsg->JobInfo.im2colInfo.width,
                                           pMsg->JobInfo.im2colInfo.kernelH, pMsg->JobInfo.im2colInfo.kernelW,
-                                          pMsg->JobInfo.im2colInfo.padH, pMsg->JobInfo.im2colInfo.padW,
+                                          pMsg->JobInfo.im2colInfo.padH,    pMsg->JobInfo.im2colInfo.padW,
                                           pMsg->JobInfo.im2colInfo.strideH, pMsg->JobInfo.im2colInfo.strideW,
-                                          pMsg->JobInfo.im2colInfo.dilateH, pMsg->JobInfo.im2colInfo.dilateW,
-                                          (float *)pMsg->JobInfo.im2colInfo.pBIm2col);
+                                          pMsg->JobInfo.im2colInfo.dilateH, pMsg->JobInfo.im2colInfo.dilateW);
             }
+			else
+			{
+			    printf("im2col data type %d not supported, %s %d\n", pMsg->JobInfo.im2colInfo.outType, __FILE__, __LINE__);
+			}
             break;
         case MSG_CMD_EXIT:
             deadloop = 0;
@@ -398,7 +403,7 @@ void * sgemm_thread_process(void *args)
             INIT_LIST_HEAD(&pThreadInfo->msgQueueList);
             break;
         default:
-            printf("msg %s not process\n", MSG2STR(pMsg->cmd));
+            printf("Err: msg %s not process\n", MSG2STR(pMsg->cmd));
             break;
         }
 
@@ -408,7 +413,7 @@ void * sgemm_thread_process(void *args)
         pthread_cond_signal(&pMsg->jobDoneCondition);
         pthread_mutex_unlock(&pMsg->lock);
 
-        printf("[%d] process msg, %s\n", pThreadInfo->index, MSG2STR(pMsg->cmd));
+        //printf("[%llu] thread [%d] process msg %s \n", pMsg->sequenceId, pThreadInfo->index, MSG2STR(pMsg->cmd));
     }
 
     printf("thread %d exit\n", pThreadInfo->index);

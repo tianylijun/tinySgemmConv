@@ -17,15 +17,15 @@
 
 #include <string.h>
 #include <arm_neon.h>
+#include <stdio.h>
 #include "im2col.h"
 
-static void im2col_cpu_channel_fp32_fp32(const float* data_im,
+static void im2col_cpu_channel_fp32_fp32(const float* data_im, float* data_col,
         const int height, const int width,
         const int kernel_h, const int kernel_w,
         const int pad_h, const int pad_w,
         const int stride_h, const int stride_w,
-        const int dilation_h, const int dilation_w,
-        float* data_col)
+        const int dilation_h, const int dilation_w)
 {
     int kernel_row,kernel_col,output_rows,output_col,output_cols;
     const int output_h = (height + 2 * pad_h - (dilation_h * (kernel_h - 1) + 1)) / stride_h + 1;
@@ -59,13 +59,9 @@ static void im2col_cpu_channel_fp32_fp32(const float* data_im,
     }
 }
 
-static void im2col_cpu_reduce_channel_fp32_fp32(const float* data_im,
+static void im2col_cpu_reduce_channel_fp32_fp32(const float* data_im, float* data_col,
         const int height, const int width,
-        const int kernel_h, const int kernel_w,
-        const int pad_h, const int pad_w,
-        const int stride_h, const int stride_w,
-        const int dilation_h, const int dilation_w,
-        float* data_col)
+        const int kernel_h, const int kernel_w)
 {
     const int output_h = height - kernel_h + 1;
     const int output_w = width  - kernel_w + 1;
@@ -79,42 +75,33 @@ static void im2col_cpu_reduce_channel_fp32_fp32(const float* data_im,
             const float* data_im_kw = data_im_kh + kw;
             float* data_col_kw = data_col_kh + kw*output_h*output_w;
             for (int i = 0; i < output_h; i++)
-            {
                 memcpy(data_col_kw+i*output_w, data_im_kw + i*width, output_w*sizeof(float));
-            }
         }
     }
 }
 
-void im2col_channel_fp32_fp32(const float* data_im,
+void im2col_channel_fp32_fp32(const float* data_im, float* data_col,
                               const int height, const int width,
                               const int kernel_h, const int kernel_w,
                               const int pad_h, const int pad_w,
                               const int stride_h, const int stride_w,
-                              const int dilation_h, const int dilation_w,
-                              float* data_col)
+                              const int dilation_h, const int dilation_w)
 {
-    if ((3 == kernel_h) && (3 == kernel_w) &&
-            (0 == pad_h) && (0 == pad_w) &&
-            (1 == stride_h) && (1 == stride_w) &&
-            (1 == dilation_h) && (1 == dilation_w))
+    if ((0 == pad_h)      && (0 == pad_w)    &&
+        (1 == stride_h)   && (1 == stride_w) &&
+        (1 == dilation_h) && (1 == dilation_w))
     {
-        im2col_cpu_reduce_channel_fp32_fp32(data_im,
-                                            height, width,
-                                            kernel_h, kernel_w,
-                                            pad_h, pad_w,
-                                            stride_h, stride_w,
-                                            dilation_h, dilation_w,
-                                            data_col);
+        im2col_cpu_reduce_channel_fp32_fp32(data_im,  data_col,
+                                            height,   width,
+                                            kernel_h, kernel_w);
     }
     else
     {
-        im2col_cpu_channel_fp32_fp32(data_im,
+        im2col_cpu_channel_fp32_fp32(data_im, data_col,
                                      height, width,
                                      kernel_h, kernel_w,
                                      pad_h, pad_w,
                                      stride_h, stride_w,
-                                     dilation_h, dilation_w,
-                                     data_col);
+                                     dilation_h, dilation_w);
     }
 }
