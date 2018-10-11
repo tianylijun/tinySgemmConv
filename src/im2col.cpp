@@ -88,8 +88,8 @@ void im2col_channel_fp32_fp32(const float* data_im, float* data_col,
                               const int dilation_h, const int dilation_w)
 {
     if ((0 == pad_h)      && (0 == pad_w)    &&
-        (1 == stride_h)   && (1 == stride_w) &&
-        (1 == dilation_h) && (1 == dilation_w))
+            (1 == stride_h)   && (1 == stride_w) &&
+            (1 == dilation_h) && (1 == dilation_w))
     {
         im2col_cpu_reduce_channel_fp32_fp32(data_im,  data_col,
                                             height,   width,

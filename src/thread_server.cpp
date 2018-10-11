@@ -228,8 +228,8 @@ void * sgemm_thread_process(void *args)
             if (TINY_SGEMM_UNIT_N == pMsg->JobInfo.sgemmInfo.n)
             {
                 /* do TINY_SGEMM_UNIT_M * K * TINY_SGEMM_UNIT_N */
-                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && 
-                    FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType &&
+                        FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
                     /* packB K*TINY_SGEMM_UNIT_N */
                     tinySgemmConvPackBUnitN_fp32_fp32((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
@@ -283,8 +283,8 @@ void * sgemm_thread_process(void *args)
                 NHas1  = N&1;
 
                 /* do TINY_SGEMM_UNIT_M * K * leftN */
-                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && 
-                    FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType &&
+                        FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
                     /* packB K*leftN */
                     tinySgemmConvPackBLeftN_fp32_fp32((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
@@ -392,10 +392,10 @@ void * sgemm_thread_process(void *args)
                                           pMsg->JobInfo.im2colInfo.strideH, pMsg->JobInfo.im2colInfo.strideW,
                                           pMsg->JobInfo.im2colInfo.dilateH, pMsg->JobInfo.im2colInfo.dilateW);
             }
-			else
-			{
-			    printf("im2col data type %d not supported, %s %d\n", pMsg->JobInfo.im2colInfo.outType, __FILE__, __LINE__);
-			}
+            else
+            {
+                printf("im2col data type %d not supported, %s %d\n", pMsg->JobInfo.im2colInfo.outType, __FILE__, __LINE__);
+            }
             break;
         case MSG_CMD_EXIT:
             deadloop = 0;

@@ -144,7 +144,8 @@ void tinySgemmConvPackA4x4_fp32_fp32(float *pA, float *pPackA, uint32_t M, uint3
         memcpy(pPackA + (M-1)*K, pA + (M-1)*K, K*sizeof(*pA));
 }
 
-void tinySgemmConvPackB4x24_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N)
+#ifdef __aarch64__
+static void tinySgemmConvPackB4x24_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N)
 {
     uint32_t i = 0, Nx4 = 0;
     uint32_t KDiv4, KHas2, KHas1;
@@ -225,6 +226,7 @@ void tinySgemmConvPackB4x24_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K,
         vst1q_f32_x2(pDstStart+16, vsrc_32x4x2_0);
     }
 }
+#endif
 
 static void tinySgemmConvPackB4x16_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N)
 {
@@ -289,7 +291,10 @@ static void tinySgemmConvPackB4x16_fp32_fp32_unit(float *pB, float *pPackB, uint
     }
 }
 
-void tinySgemmConvPackB4x12_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N)
+#if 1
+extern "C" void tinySgemmConvPackB4x12_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N);
+#else
+static void tinySgemmConvPackB4x12_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N)
 {
     uint32_t i = 0, Nx4 = 0;
     uint32_t KDiv4, KHas2, KHas1;
@@ -305,7 +310,7 @@ void tinySgemmConvPackB4x12_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K,
     pSrcStart_1 = pB + N;
     pSrcStart_2 = pB + 2*N;
     pSrcStart_3 = pB + 3*N;
-	Nx4 = N*4;
+    Nx4 = N*4;
 
     pDstStart = pPackB;
 
@@ -352,6 +357,7 @@ void tinySgemmConvPackB4x12_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K,
         vst1q_f32_x3(pDstStart, vsrc_32x4x3);
     }
 }
+#endif
 
 static void tinySgemmConvPackB4x8_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N)
 {
@@ -369,7 +375,7 @@ static void tinySgemmConvPackB4x8_fp32_fp32_unit(float *pB, float *pPackB, uint3
     pSrcStart_1 = pB + N;
     pSrcStart_2 = pB + 2*N;
     pSrcStart_3 = pB + 3*N;
-	Nx4 = N*4;
+    Nx4 = N*4;
     pDstStart = pPackB;
 
     for (i = 0; i < KDiv4; ++i)

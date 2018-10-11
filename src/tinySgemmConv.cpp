@@ -81,11 +81,11 @@ int tinySgemmConvInit
         }
     }
 
-    printf("num_threads:%d\n", num_threads);
+    //printf("num_threads:%d\n", num_threads);
     num_threads = T_MIN(num_threads, MAX_CORE_NUMBER);
     availCores  = getAvaiableCoresMaxFreq(&coresMaxFreq, &maxFreq);
     num_threads = T_MIN(num_threads, availCores);
-    printf("availCores :%d\n", availCores);
+    printf("num_threads:%d, availCores :%d\n", num_threads, availCores);
 
     pThreadInfo = (struct thread_info*)calloc(num_threads, sizeof(struct thread_info));
     if (NULL == pThreadInfo)
@@ -375,10 +375,10 @@ int tinySgemmConvProcess(void *pInstance,
     leftN  = N%TINY_SGEMM_UNIT_N;
 
     INIT_LIST_HEAD(&jobsQueue);
-    printf("Im2col start\n");
+    //printf("Im2col start\n");
     TIME_STAMP_BEG(begIm2col);
 
-	/* 1x1 not need do im2col for input */
+    /* 1x1 not need do im2col for input */
     if (NULL == psgemmInstance->pBIm2col)
     {
         psgemmInstance->pBIm2col = (uint8_t *)pInput;
@@ -388,7 +388,7 @@ int tinySgemmConvProcess(void *pInstance,
     else
     {
         uint32_t inputChannelSize = psgemmInstance->inputH*psgemmInstance->inputW;
-	
+
         for (i = 0; i < psgemmInstance->inChannels; ++i)
         {
             struct thread_info *pThreadInfo   = getMinJobsNumThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_IM2COL);
@@ -419,7 +419,7 @@ int tinySgemmConvProcess(void *pInstance,
 
     TIME_STAMP_END(begIm2col, endIm2col, "im2col");
 
-	printf("-blockN: %d %d %d-\n", blockN, N, TINY_SGEMM_UNIT_N);
+    //printf("-blockN: %d %d %d-\n", blockN, N, TINY_SGEMM_UNIT_N);
     TIME_STAMP_BEG(begSgemm);
 
     for (i = 0; i < blockN; ++i)

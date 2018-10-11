@@ -1246,7 +1246,7 @@ static void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
         vsrcA32x4x2 = vld1q_f32_x2(pCurA);
         vsrcC32x4x3_0.val[0] = vmlaq_n_f32(vsrcC32x4x3_0.val[0], vsrcB32x4x3.val[0], vsrcA32x4x2.val[0][0]);
         ARM_LOAD_PREFETCH_64(pCurB);
-		pCurA += 8;
+        pCurA += 8;
         vsrcC32x4x3_0.val[1] = vmlaq_n_f32(vsrcC32x4x3_0.val[1], vsrcB32x4x3.val[1], vsrcA32x4x2.val[0][0]);
         vsrcC32x4x3_0.val[2] = vmlaq_n_f32(vsrcC32x4x3_0.val[2], vsrcB32x4x3.val[2], vsrcA32x4x2.val[0][0]);
         vsrcC32x4x3_1.val[0] = vmlaq_n_f32(vsrcC32x4x3_1.val[0], vsrcB32x4x3.val[0], vsrcA32x4x2.val[0][1]);
@@ -3006,6 +3006,9 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
         sgemm1xKx8_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
 }
 
+#if 1
+extern "C" void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+#else
 /* fp32 unit sgemm block is, A:4x4  B:4x4 C:4x4 */
 static void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
@@ -3156,6 +3159,7 @@ static void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     vst1q_f32(pC+2*N, vsrcC32x4x4.val[2]);
     vst1q_f32(pC+3*N, vsrcC32x4x4.val[3]);
 }
+#endif
 
 static void sgemm2xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {

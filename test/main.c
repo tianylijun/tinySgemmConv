@@ -6,7 +6,7 @@
 
 int main(int argc, char const *argv[])
 {
-    int ret = 0, i = 1, loopCnt = 5, num_threads = 4;
+    int ret = 0, i = 1, j = 0, outLoopCnt = 5, loopCnt = 5, num_threads = 4;
     uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0, strideW = 1, strideH = 1, outChannels = 128, dilateW = 1, dilateH = 1, outputW, outputH, M, N, K;
     void *pCtx, *psgemmInstance;
     //uint32_t affinity[MAX_CORE_NUMBER] = {1<<1, 1<<2, 1<<3, 1<<4};
@@ -51,29 +51,32 @@ int main(int argc, char const *argv[])
     for (i = 0; i < M * K; i++)           pWeight[i] = rand()/10000.0f;
     for (i = 0; i < inChannels*inputW * inputH; i++) pInput[i]  = rand()/10000.0f;
 
-    ret =  tinySgemmConvInit(num_threads, THREAD_STACK_SIZE, &affinity, &pCtx);
-    printf("Init ok\n");
-    psgemmInstance = tinySgemmConvCreateInstance(pCtx,
-                     pWeight,
-                     inChannels,  inputH, inputW,
-                     outChannels, kernelH, kernelW,
-                     padH, padW,
-                     strideH, strideW,
-                     dilateH, dilateW,
-                     TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
-    printf("Instance create ok\n");
+    for (j = 0; j < outLoopCnt; ++j)
+    {
+        ret =  tinySgemmConvInit(num_threads, THREAD_STACK_SIZE, &affinity, &pCtx);
+        printf("Init ok\n");
+        psgemmInstance = tinySgemmConvCreateInstance(pCtx,
+                         pWeight,
+                         inChannels,  inputH, inputW,
+                         outChannels, kernelH, kernelW,
+                         padH, padW,
+                         strideH, strideW,
+                         dilateH, dilateW,
+                         TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
+        printf("Instance create ok\n");
 
-    gettimeofday(&beg, NULL);
+        gettimeofday(&beg, NULL);
 
-    for (i = 0; i < loopCnt; ++i)
-        ret = tinySgemmConvProcess(psgemmInstance, pInput, pOutput,
-                                   NULL, false, NULL, false, NULL,
-                                   TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
+        for (i = 0; i < loopCnt; ++i)
+            ret = tinySgemmConvProcess(psgemmInstance, pInput, pOutput,
+                                       NULL, false, NULL, false, NULL,
+                                       TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
 
-    gettimeofday(&end, NULL);
-    printf("\ntime: %ld ms, avg time : %.3f ms, loop: %d threads: %d\n", (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/(1000.0*loopCnt), loopCnt, num_threads);
-    ret = tinySgemmConvReleaseInstance(psgemmInstance);
-    ret = tinySgemmConvDeinit(pCtx);
+        gettimeofday(&end, NULL);
+        ret = tinySgemmConvReleaseInstance(psgemmInstance);
+        ret = tinySgemmConvDeinit(pCtx);
+        printf("[%02d/%02d] time: %ld ms, avg time : %.3f ms, loop: %d threads: %d\n\n", j, outLoopCnt, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/(1000.0*loopCnt), loopCnt, num_threads);
+    }
     if (pWeight)
         free(pWeight);
     if (pInput)

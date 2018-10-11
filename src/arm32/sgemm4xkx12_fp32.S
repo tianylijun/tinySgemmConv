@@ -128,7 +128,7 @@ sgemm4xKx12_fp32:
     ldr bSharedPrelu, ST_bSharedPrelu  /* load param from stack */
     ldr pBasis, ST_pBasis              /* load param from stack */
 
-    pld [B, #384]
+    pld [B, #64]
     veor VSRC_4S_C0_0, VSRC_4S_C0_0, VSRC_4S_C0_0
     pld [A, #32]
     veor VSRC_4S_C0_1, VSRC_4S_C0_1, VSRC_4S_C0_1
@@ -155,7 +155,7 @@ __LOOP:
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
     vld1.32 {VSRC_4S_B2}, [B:128]!
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
-    pld [B, #384]
+    pld [B, #64]
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     pld [A, #16]
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
@@ -178,7 +178,7 @@ __LOOP:
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
     vld1.32 {VSRC_4S_B2}, [B:128]!
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
-    pld [B, #384]
+    pld [B, #64]
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     pld [A, #16]
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
@@ -201,7 +201,7 @@ __LOOP:
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
     vld1.32 {VSRC_4S_B2}, [B:128]!
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
-    pld [B, #384]
+    pld [B, #64]
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     pld [A, #16]
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
@@ -224,7 +224,7 @@ __LOOP:
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
     vld1.32 {VSRC_4S_B2}, [B:128]!
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
-    pld [B, #384]
+    pld [B, #64]
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     pld [A, #16]
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
@@ -255,7 +255,7 @@ __KHAS2:
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
     vld1.32 {VSRC_4S_B2}, [B:128]!
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
-    pld [B, #384]
+    pld [B, #64]
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     pld [A, #16]
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
@@ -278,7 +278,7 @@ __KHAS2:
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
     vld1.32 {VSRC_4S_B2}, [B:128]!
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
-    pld [B, #384]
+    pld [B, #64]
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     pld [A, #16]
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
@@ -296,7 +296,7 @@ __KHAS2:
 
 __KHAS1:
     and KHas1, K, #1
-    cmp KHas2, #0
+    cmp KHas1, #0
     beq __BASIS
 
     /* 0 */
@@ -306,7 +306,7 @@ __KHAS1:
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
     vld1.32 {VSRC_4S_B2}, [B:128]!
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
-    pld [B, #384]
+    pld [B, #64]
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     pld [A, #16]
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
@@ -378,13 +378,13 @@ __RELU:
     b __STORE
 
 __PRELU:
-    cmp bRelu, #0
+    cmp pPrelu, #0
     beq __STORE
 
     veor VZERO_4S, VZERO_4S, VZERO_4S
 
     cmp bSharedPrelu, #0
-    bne __SEPARATE
+    beq __SEPARATE
 
     vld1.32 {VSCALE_4S_LANE_0, VSCALE_4S_LANE_1}, [pPrelu]
     b __PRELU_BEG
