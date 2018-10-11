@@ -422,6 +422,9 @@ static void tinySgemmConvPackB4x8_fp32_fp32_unit(float *pB, float *pPackB, uint3
     }
 }
 
+#if 1
+extern "C" void tinySgemmConvPackB4x4_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N);
+#else
 static void tinySgemmConvPackB4x4_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N)
 {
     uint32_t i = 0, Nx4 = 0;
@@ -474,6 +477,7 @@ static void tinySgemmConvPackB4x4_fp32_fp32_unit(float *pB, float *pPackB, uint3
         vst1q_f32(pDstStart, vsrc_32x4);
     }
 }
+#endif
 
 static void tinySgemmConvPackB4x2_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N)
 {
