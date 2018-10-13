@@ -31,7 +31,7 @@ int main(int argc, char const *argv[])
     uint32_t affinity[MAX_CORE_NUMBER] = {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff};
     struct timeval beg, end;
 
-    if (argc > 1)  num_threads   = atoi(argv[i++]);
+    if (argc > 1)  num_threads  = atoi(argv[i++]);
     if (argc > 2)  inChannels   = atoi(argv[i++]);
     if (argc > 3)  inputW       = atoi(argv[i++]);
     if (argc > 4)  inputH       = atoi(argv[i++]);
@@ -40,7 +40,7 @@ int main(int argc, char const *argv[])
     if (argc > 7)  padW         = atoi(argv[i++]);
     if (argc > 8)  padH         = atoi(argv[i++]);
     if (argc > 9)  strideW      = atoi(argv[i++]);
-    if (argc > 10)  strideH      = atoi(argv[i++]);
+    if (argc > 10) strideH      = atoi(argv[i++]);
     if (argc > 11) outChannels  = atoi(argv[i++]);
 
     outputW = (inputW + padW*2 - kernelW)/strideW + 1;

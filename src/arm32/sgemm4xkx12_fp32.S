@@ -1,3 +1,15 @@
+    .equ      VERSION_MAJOR,    1
+    .equ      VERSION_MINOR,    0
+    .equ      VERSION_REVISION, 0
+
+    .equ      PHASE,            1
+    .equ      COPYRIGHT_YEAR,   2018
+
+COPYRIGHT_HOLDER:
+    .asciz    "tianylijun@163.com"
+    .equ      NE_OK,        0
+    .equ      NE_ERR,      -1
+
 #define STACK_SIZE       512
 
 /* RSV [r4~r9,fp] */
