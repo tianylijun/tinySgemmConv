@@ -3,6 +3,19 @@ cmake_minimum_required(VERSION 3.5)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
 message(STATUS "compile name ${CMAKE_CXX_COMPILER_ID}")
 
+include(FindOpenMP)
+if(OPENMP_FOUND)
+	#if(OpenMP_CXX_FOUND OR OPENMP_FOUND)
+	#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+	message(STATUS ${OpenMP_C_FLAGS})
+	message(STATUS ${OpenMP_CXX_FLAGS})
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
+message(STATUS "OpenMP flags ${CMAKE_CXX_FLAGS}")
+
+
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
 message(STATUS "compile use clang")
@@ -31,12 +44,12 @@ endif()
 
 if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
 
-add_executable(tinySgemmConv_test64 main.c)
+add_executable(tinySgemmConv_test64 convolution_3x3s1.c main.c)
 target_link_libraries(tinySgemmConv_test64 tinySgemmConv)
 
 else("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7-a")
 
-add_executable(tinySgemmConv_test32 main.c)
+add_executable(tinySgemmConv_test32 convolution_3x3s1.c main.c)
 target_link_libraries(tinySgemmConv_test32 tinySgemmConv)
 
 endif ()
