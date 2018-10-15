@@ -17,8 +17,7 @@ COPYRIGHT_HOLDER:
 #define pB                x0
 #define pPackB            x1
 #define K                 w2
-#define N                 w3
-#define NX4               x3
+#define N                 x3
 
 #define KDiv4             w4
 #define KHas2             w4
@@ -49,7 +48,6 @@ tinySgemmConvPackB4x24_fp32_fp32_unit:
     lsl N, N, #2
     subs N, N, #64
     lsr KDiv4, K, #2
-    sxtw NX4, N
 
     cmp KDiv4, #0
     beq __KHAS2
@@ -59,28 +57,28 @@ __LOOP:
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [pB], #64
     st1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3} ,[pPackB], #64
 
-    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], NX4
+    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], N
     st1 {VSRC_4S_B4, VSRC_4S_B5} ,[pPackB], #32
 
     /* 1 */
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [pB], #64
     st1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3} ,[pPackB], #64
 
-    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], NX4
+    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], N
     st1 {VSRC_4S_B4, VSRC_4S_B5} ,[pPackB], #32
 
     /* 2 */
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [pB], #64
     st1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3} ,[pPackB], #64
 
-    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], NX4
+    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], N
     st1 {VSRC_4S_B4, VSRC_4S_B5} ,[pPackB], #32
 
     /* 3 */
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [pB], #64
     st1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3} ,[pPackB], #64
     subs KDiv4, KDiv4, #1
-    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], NX4
+    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], N
     st1 {VSRC_4S_B4, VSRC_4S_B5} ,[pPackB], #32
 
     cmp KDiv4, #0
@@ -95,14 +93,14 @@ __KHAS2:
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [pB], #64
     st1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3} ,[pPackB], #64
 
-    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], NX4
+    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], N
     st1 {VSRC_4S_B4, VSRC_4S_B5} ,[pPackB], #32
 
     /* 1 */
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [pB], #64
     st1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3} ,[pPackB], #64
 
-    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], NX4
+    ld1 {VSRC_4S_B4, VSRC_4S_B5}, [pB], N
     st1 {VSRC_4S_B4, VSRC_4S_B5} ,[pPackB], #32
 
 

@@ -17,8 +17,7 @@ COPYRIGHT_HOLDER:
 #define pB                x0
 #define pPackB            x1
 #define K                 w2
-#define N                 w3
-#define NX4               x3
+#define N                 x3
 
 #define KDiv4             w4
 #define KHas2             w4
@@ -44,27 +43,26 @@ tinySgemmConvPackB4x8_fp32_fp32_unit:
 
     lsl N, N, #2
     lsr KDiv4, K, #2
-    sxtw NX4, N
 
     cmp KDiv4, #0
     beq __KHAS2
 
 __LOOP:
     /* 0 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], NX4
+    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], N
     st1 {VSRC_4S_B0, VSRC_4S_B1} ,[pPackB], #32
 
     /* 1 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], NX4
+    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], N
     st1 {VSRC_4S_B0, VSRC_4S_B1} ,[pPackB], #32
 
     /* 2 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], NX4
+    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], N
     st1 {VSRC_4S_B0, VSRC_4S_B1} ,[pPackB], #32
     subs KDiv4, KDiv4, #1
 
     /* 3 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], NX4
+    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], N
     st1 {VSRC_4S_B0, VSRC_4S_B1} ,[pPackB], #32
 
     cmp KDiv4, #0
@@ -76,11 +74,11 @@ __KHAS2:
     beq __KHAS1
 
     /* 0 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], NX4
+    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], N
     st1 {VSRC_4S_B0, VSRC_4S_B1} ,[pPackB], #32
 
     /* 1 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], NX4
+    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [pB], N
     st1 {VSRC_4S_B0, VSRC_4S_B1} ,[pPackB], #32
 
 __KHAS1:
