@@ -29,6 +29,9 @@
 #define VMLAQ_N_F32(a,b,c,d) vmlaq_lane_f32(a, b, c, d)
 #endif
 
+#if 1
+extern "C" void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+#else
 /* fp32 unit sgemm block is, A:4x4  B:4x24 C:4x24 */
 static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
@@ -552,7 +555,9 @@ static void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
     vst1q_f32_x4(pC+3*N,    vsrcC32x4x4_3);
     vst1q_f32_x2(pC+3*N+16, vsrcC32x4x2_3);
 }
+#endif
 
+#ifdef __aarch64__
 static void sgemm2xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
@@ -1128,6 +1133,7 @@ void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     if (MHas1)
         sgemm1xKx24_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
 }
+#endif
 
 /* fp32 unit sgemm block is, A:4x4  B:4x12 C:4x12 */
 #if 1
