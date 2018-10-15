@@ -424,7 +424,7 @@ __KHAS1:
     beq __BASIS
 
     /* 0 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B], #64
+    ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B]
     ld1 {VSRC_4S_A0}, [A]
 
     fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A0_0

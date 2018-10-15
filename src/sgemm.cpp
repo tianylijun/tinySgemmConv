@@ -1770,6 +1770,9 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
         sgemm1xKx12_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
 }
 
+#if 1
+extern "C" void sgemm4xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+#else
 static void sgemm4xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
@@ -2112,6 +2115,7 @@ static void sgemm4xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32
     vst1q_f32_x4(pC+2*N, vsrcC32x4x4_2);
     vst1q_f32_x4(pC+3*N, vsrcC32x4x4_3);
 }
+#endif
 
 static void sgemm2xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
