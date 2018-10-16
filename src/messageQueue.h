@@ -44,17 +44,6 @@ struct MSG_STR
     const char *desc;
 };
 
-static struct MSG_STR msg_str_map[MSG_CMD_END+1] =
-{
-    {MSG_CMD_EXIT,   "MSG_CMD_EXIT"},
-    {MSG_CMD_SGEMM,  "MSG_CMD_SGEMM"},
-    {MSG_CMD_IM2COL, "MSG_CMD_IM2COL"},
-
-    {MSG_CMD_END,    "MSG_CMD_END"},
-};
-
-#define MSG2STR(x) msg_str_map[(x)].desc
-
 enum SGEMM_DataType
 {
     FLOAT32_TYPE,
@@ -123,6 +112,7 @@ struct msg
 extern "C" {
 #endif
 
+const char *MSG2STR(enum MSG_CMD cmd);
 struct msg *msgPoolInit(struct tinySgemmConvCtx *pCtx, uint32_t maxNumber);
 int msgPoolDeInit(struct tinySgemmConvCtx *pCtx);
 void returnMsg(struct tinySgemmConvCtx *pCtx, struct msg *pMsg);

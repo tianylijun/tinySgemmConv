@@ -393,8 +393,29 @@ static inline float32x4x4_t vld1q_f32_x4(const void* address)
     return result;
 }
 
+static inline float32x2x4_t vld1_f32_x4(const void* address)
+{
+    float32x2x4_t result;
+    result.val[0] = vld1_f32((const float32_t*) address);
+    result.val[1] = vld1_f32((const float32_t*) address + 2);
+    result.val[2] = vld1_f32((const float32_t*) address + 4);
+    result.val[3] = vld1_f32((const float32_t*) address + 6);
+    return result;
+}
+
+static inline float32x2x2_t vld1_f32_x2(const void* address)
+{
+    float32x2x2_t result;
+    result.val[0] = vld1_f32((const float32_t*) address);
+    result.val[1] = vld1_f32((const float32_t*) address + 2);
+    return result;
+}
+
 #else /* __aarch64__ */
-typedef struct float16x4x2_t
+
+typedef int16x8_t float16x8_t;
+
+typedef struct float16x8x2_t
 {
     float16x8_t val[2];
 } float16x8x2_t;
@@ -402,6 +423,59 @@ typedef struct float16x4x2_t
 {
     float16x4_t val[2];
 } float16x4x2_t;
+
+static inline float32x4x2_t vld1q_f32_x2(const void* address)
+{
+    float32x4x2_t result;
+    result.val[0] = vld1q_f32((const float32_t*) address);
+    result.val[1] = vld1q_f32((const float32_t*) address + 4);
+    return result;
+}
+
+static inline float32x2x4_t vld1_f32_x4(const void* address)
+{
+    float32x2x4_t result;
+    result.val[0] = vld1_f32((const float32_t*) address);
+    result.val[1] = vld1_f32((const float32_t*) address + 2);
+    result.val[2] = vld1_f32((const float32_t*) address + 4);
+    result.val[3] = vld1_f32((const float32_t*) address + 6);
+    return result;
+}
+
+static inline float32x2x2_t vld1_f32_x2(const void* address)
+{
+    float32x2x2_t result;
+    result.val[0] = vld1_f32((const float32_t*) address);
+    result.val[1] = vld1_f32((const float32_t*) address + 2);
+    return result;
+}
+
+static inline void vst1q_f32_x4(void *address, float32x4x4_t vector)
+{
+    vst1q_f32((float32_t*) address,      vector.val[0]);
+    vst1q_f32((float32_t*) address + 4,  vector.val[1]);
+    vst1q_f32((float32_t*) address + 8,  vector.val[2]);
+    vst1q_f32((float32_t*) address + 12, vector.val[3]);
+    return;
+}
+
+static inline float32x4x4_t vld1q_f32_x4(const void* address)
+{
+    float32x4x4_t result;
+    result.val[0] = vld1q_f32((const float32_t*) address);
+    result.val[1] = vld1q_f32((const float32_t*) address + 4);
+    result.val[2] = vld1q_f32((const float32_t*) address + 8);
+    result.val[3] = vld1q_f32((const float32_t*) address + 12);
+    return result;
+}
+
+static inline void vst1q_f32_x2(void *address, float32x4x2_t vector)
+{
+    vst1q_f32((float32_t*) address,      vector.val[0]);
+    vst1q_f32((float32_t*) address + 4,  vector.val[1]);
+    return;
+}
+
 static inline float16x8x2_t vld1q_f16_x2(const void* address)
 {
     float16x8x2_t result;

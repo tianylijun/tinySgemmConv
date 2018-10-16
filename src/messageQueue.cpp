@@ -28,6 +28,20 @@
 
 static uint64_t msgSequence = 0;
 
+static struct MSG_STR msg_str_map[MSG_CMD_END+1] =
+{
+    {MSG_CMD_EXIT,   "MSG_CMD_EXIT"},
+    {MSG_CMD_SGEMM,  "MSG_CMD_SGEMM"},
+    {MSG_CMD_IM2COL, "MSG_CMD_IM2COL"},
+
+    {MSG_CMD_END,    "MSG_CMD_END"},
+};
+
+const char *MSG2STR(enum MSG_CMD cmd)
+{
+    return msg_str_map[cmd].desc;
+}
+
 struct msg *msgPoolInit(struct tinySgemmConvCtx *pCtx, uint32_t maxNumber)
 {
     struct msg *pMsg;

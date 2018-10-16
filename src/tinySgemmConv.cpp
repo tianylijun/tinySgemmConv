@@ -234,8 +234,8 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     switch(mode)
     {
     case TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP16:
-        packATypeSize = sizeof(__fp16);
-        packBTypeSize = sizeof(__fp16);
+        packATypeSize = sizeof(uint16_t);
+        packBTypeSize = sizeof(uint16_t);
         packADataType = FLOAT16_TYPE;
         packBDataType = FLOAT16_TYPE;
         break;
@@ -349,7 +349,7 @@ int tinySgemmConvProcess(void *pInstance,
                          float (*int8Scale)[3],
                          enum TINY_SGEMM_CONV_DATA_MODE mode)
 {
-    uint32_t i, M, N, K, packBTypeSize, blockN, leftN;
+    uint32_t i, N, packBTypeSize, blockN, leftN;
     struct list_head jobsQueue;
     enum SGEMM_DataType packBDataType, packADataType;
     struct tinySgemmConvCtx *pCtxInner;
@@ -368,9 +368,7 @@ int tinySgemmConvProcess(void *pInstance,
     packADataType = psgemmInstance->packADataType;
     packBDataType = psgemmInstance->packBDataType;
 
-    M      = psgemmInstance->M;
     N      = psgemmInstance->N;
-    K      = psgemmInstance->K;
     blockN = N/TINY_SGEMM_UNIT_N;
     leftN  = N%TINY_SGEMM_UNIT_N;
 

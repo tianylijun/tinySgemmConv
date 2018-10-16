@@ -40,7 +40,7 @@ if( CMAKE_SYSTEM_PROCESSOR MATCHES armv7-a )
 add_definitions(-mfpu=neon-fp16)
 endif()
 
-#add_definitions(-std=c++11)
+add_definitions(-std=gnu99)
 
 if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
 

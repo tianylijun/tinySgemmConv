@@ -280,8 +280,8 @@ __KHAS1:
     beq __BASIS
 
     /* 0 */
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
-    vld1.32 {VSRC_4S_A0}, [A:128]!
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]
+    vld1.32 {VSRC_4S_A0}, [A:128]
 
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A0_0
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A0_0

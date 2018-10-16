@@ -316,11 +316,9 @@ __KHAS1:
     vld1.32 {VSRC_4S_A}, [A]
 
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B2}, [B:128]!
+    vld1.32 {VSRC_4S_B2}, [B:128]
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
-    pld [B, #64]
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
-    pld [A, #16]
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
 
     vmla.f32 VSRC_4S_C2_0, VSRC_4S_B0, VSRC_4S_A_2
