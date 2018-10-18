@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include "list.h"
+#include "tinySgemmConv.h"
 
 enum MSG_STATUS
 {
@@ -63,7 +64,7 @@ struct sgemmJobInfo
     uint32_t K;
     uint32_t n;
     float *pBasis;
-    bool bRelu;
+    enum TINY_SGEMM_RELU_TYPE reluType;
     float *pPrelu;
     bool bSharedPrelu;
     float (*int8Scale)[3];

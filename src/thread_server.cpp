@@ -242,7 +242,7 @@ void * sgemm_thread_process(void *args)
                                       pMsg->JobInfo.sgemmInfo.M,
                                       pMsg->JobInfo.sgemmInfo.N,
                                       pMsg->JobInfo.sgemmInfo.K,
-                                      pMsg->JobInfo.sgemmInfo.bRelu,
+                                      (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
                                       pMsg->JobInfo.sgemmInfo.pPrelu,
                                       pMsg->JobInfo.sgemmInfo.bSharedPrelu,
                                       pMsg->JobInfo.sgemmInfo.pBasis);
@@ -253,7 +253,7 @@ void * sgemm_thread_process(void *args)
                                       pMsg->JobInfo.sgemmInfo.M,
                                       pMsg->JobInfo.sgemmInfo.N,
                                       pMsg->JobInfo.sgemmInfo.K,
-                                      pMsg->JobInfo.sgemmInfo.bRelu,
+                                      (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
                                       pMsg->JobInfo.sgemmInfo.pPrelu,
                                       pMsg->JobInfo.sgemmInfo.bSharedPrelu,
                                       pMsg->JobInfo.sgemmInfo.pBasis);
@@ -304,7 +304,7 @@ void * sgemm_thread_process(void *args)
                                           pMsg->JobInfo.sgemmInfo.M,
                                           pMsg->JobInfo.sgemmInfo.N,
                                           pMsg->JobInfo.sgemmInfo.K,
-                                          pMsg->JobInfo.sgemmInfo.bRelu,
+                                          (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
                                           pMsg->JobInfo.sgemmInfo.pPrelu,
                                           pMsg->JobInfo.sgemmInfo.bSharedPrelu,
                                           pMsg->JobInfo.sgemmInfo.pBasis);
@@ -320,7 +320,7 @@ void * sgemm_thread_process(void *args)
                                          pMsg->JobInfo.sgemmInfo.M,
                                          pMsg->JobInfo.sgemmInfo.N,
                                          pMsg->JobInfo.sgemmInfo.K,
-                                         pMsg->JobInfo.sgemmInfo.bRelu,
+                                         (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
                                          pMsg->JobInfo.sgemmInfo.pPrelu,
                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
                                          pMsg->JobInfo.sgemmInfo.pBasis);
@@ -336,7 +336,7 @@ void * sgemm_thread_process(void *args)
                                           pMsg->JobInfo.sgemmInfo.M,
                                           pMsg->JobInfo.sgemmInfo.N,
                                           pMsg->JobInfo.sgemmInfo.K,
-                                          pMsg->JobInfo.sgemmInfo.bRelu,
+                                          (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
                                           pMsg->JobInfo.sgemmInfo.pPrelu,
                                           pMsg->JobInfo.sgemmInfo.bSharedPrelu,
                                           pMsg->JobInfo.sgemmInfo.pBasis);
@@ -352,7 +352,7 @@ void * sgemm_thread_process(void *args)
                                           pMsg->JobInfo.sgemmInfo.M,
                                           pMsg->JobInfo.sgemmInfo.N,
                                           pMsg->JobInfo.sgemmInfo.K,
-                                          pMsg->JobInfo.sgemmInfo.bRelu,
+                                          (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
                                           pMsg->JobInfo.sgemmInfo.pPrelu,
                                           pMsg->JobInfo.sgemmInfo.bSharedPrelu,
                                           pMsg->JobInfo.sgemmInfo.pBasis);
@@ -368,7 +368,7 @@ void * sgemm_thread_process(void *args)
                                           pMsg->JobInfo.sgemmInfo.M,
                                           pMsg->JobInfo.sgemmInfo.N,
                                           pMsg->JobInfo.sgemmInfo.K,
-                                          pMsg->JobInfo.sgemmInfo.bRelu,
+                                          (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
                                           pMsg->JobInfo.sgemmInfo.pPrelu,
                                           pMsg->JobInfo.sgemmInfo.bSharedPrelu,
                                           pMsg->JobInfo.sgemmInfo.pBasis);

@@ -13,7 +13,7 @@ COPYRIGHT_HOLDER:
 #define STACK_SIZE       512
 
 /* RSV [r4~r9,fp] */
-/* void sgemm2xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm2xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
 /**************in param**************/
 #define A                r0
 #define B                r1
@@ -22,7 +22,7 @@ COPYRIGHT_HOLDER:
 
 /********** Backup R Regs ***********/
 #define N                r4
-#define bRelu            r5
+#define reluType         r5
 #define pPrelu           r6
 #define bSharedPrelu     r7
 #define pBasis           r8
@@ -66,6 +66,7 @@ COPYRIGHT_HOLDER:
 #define VBASIS_2S_DUP_0  q0
 #define VBASIS_2S_DUP_1  q1
 
+#define VSIX_4S          q0
 #define VMASK            q0
 #define VZERO_4S         q1
 #define VSCALE_4S        q2
@@ -116,7 +117,7 @@ ABI: hard    r0 r1 r2 r3  [fp,#0]  [fp,#4]  [s0]      [s0]      [fp,#8]   [fp,#1
 ABI: softfp  r0 r1 r2 r3  [fp,#0]  [fp,#4]  [fp,#8]   [fp,#12]  [fp,#16]  [fp,#20]
 */
 
-/* void sgemm2xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm2xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
     .text
     .align 5
 #ifdef __APPLE__
@@ -133,7 +134,7 @@ sgemm2xKx12_fp32:
     vstm r4, {s0-s19}
 
     ldr N, ST_N                        /* load param from stack */
-    ldr bRelu, ST_bRelu                /* load param from stack */
+    ldr reluType, ST_bRelu                /* load param from stack */
     lsl N, N, #2
     ldr pPrelu, ST_pPrelu              /* load param from stack */
     lsr KDiv4, K, #2
@@ -274,17 +275,18 @@ __BASIS:
     vadd.f32 VSRC_4S_C0_2, VSRC_4S_C0_2, VBASIS_2S_DUP_0
 
 __RELU:
-    cmp bRelu, #0
+    cmp reluType, #0
     beq __PRELU
 
     veor VZERO_4S, VZERO_4S, VZERO_4S
 
+    cmp reluType, #2
+    beq __RELU6
+
 .macro RELU_MACRO, src_0:req
-    vcle.f32 VMASK, \src_0, VZERO_4S
-    vbsl VMASK, VZERO_4S, \src_0
-    vmov \src_0, VMASK
+    vmax.f32 \src_0, \src_0, VZERO_4S
 .endm
-    
+
     RELU_MACRO VSRC_4S_C0_0
     RELU_MACRO VSRC_4S_C0_1
     RELU_MACRO VSRC_4S_C0_2
@@ -292,6 +294,24 @@ __RELU:
     RELU_MACRO VSRC_4S_C1_0
     RELU_MACRO VSRC_4S_C1_1
     RELU_MACRO VSRC_4S_C1_2
+
+    b __STORE
+
+__RELU6:
+    vmov.f32 VSIX_4S, #6.0
+
+.macro RELU6_MACRO, src_0:req
+    vmax.f32 \src_0, \src_0, VZERO_4S
+    vmin.f32 \src_0, \src_0, VSIX_4S
+.endm
+
+    RELU6_MACRO VSRC_4S_C0_0
+    RELU6_MACRO VSRC_4S_C0_1
+    RELU6_MACRO VSRC_4S_C0_2
+
+    RELU6_MACRO VSRC_4S_C1_0
+    RELU6_MACRO VSRC_4S_C1_1
+    RELU6_MACRO VSRC_4S_C1_2
 
     b __STORE
 

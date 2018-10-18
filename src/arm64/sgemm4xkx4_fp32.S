@@ -11,7 +11,7 @@ COPYRIGHT_HOLDER:
     .equ      NE_ERR,      -1
 
 /* RSV X19~X28 */
-/* void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
 /**************in param**************/
 #define A                x0
 #define B                x1
@@ -20,7 +20,7 @@ COPYRIGHT_HOLDER:
 
 /********** Backup R Regs ***********/
 #define N                x4
-#define bRelu            x5
+#define reluType         x5
 #define pPrelu           x6
 #define bSharedPrelu     x7
 #define pBasis           x8
@@ -67,6 +67,7 @@ COPYRIGHT_HOLDER:
 #define VBASIS_4S_DUP_2  v2.4S
 #define VBASIS_4S_DUP_3  v3.4S
 
+#define VSIX_4S          v0.4S
 #define VMASK_4S         v0.4S
 #define VMASK_16B        v0.16B
 #define VZERO_4S         v1.4S
@@ -89,7 +90,7 @@ COPYRIGHT_HOLDER:
 #define VSRC_16B_C2_0    v30.16B
 #define VSRC_16B_C3_0    v31.16B
 
-/* void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
     .text
     .align 5
 #ifdef __APPLE__
@@ -196,21 +197,37 @@ __BASIS:
     fadd VSRC_4S_C3_0, VSRC_4S_C3_0, VBASIS_4S_DUP_3
 
 __RELU:
-    cmp bRelu, #0
+    cmp reluType, #0
     beq __PRELU
 
     eor VZERO_16B, VZERO_16B, VZERO_16B
 
-.macro RELU_MACRO, src_0:req src_0_16B:req
-    fcmle VMASK_4S, \src_0, #0.0
-    bsl VMASK_16B, VZERO_16B, \src_0_16B
-    mov \src_0_16B, VMASK_16B
+    cmp reluType, #2
+    beq __RELU6
+
+.macro RELU_MACRO, src_0:req
+    fmax \src_0, \src_0, VZERO_4S
 .endm
 
-    RELU_MACRO VSRC_4S_C0_0 VSRC_16B_C0_0
-    RELU_MACRO VSRC_4S_C1_0 VSRC_16B_C1_0
-    RELU_MACRO VSRC_4S_C2_0 VSRC_16B_C2_0
-    RELU_MACRO VSRC_4S_C3_0 VSRC_16B_C3_0
+    RELU_MACRO VSRC_4S_C0_0
+    RELU_MACRO VSRC_4S_C1_0
+    RELU_MACRO VSRC_4S_C2_0
+    RELU_MACRO VSRC_4S_C3_0
+
+    b __STORE
+
+__RELU6:
+    fmov VSIX_4S, #6.0
+
+.macro RELU6_MACRO, src_0:req
+    fmax \src_0, \src_0, VZERO_4S
+    fmin \src_0, \src_0, VSIX_4S
+.endm
+
+    RELU6_MACRO VSRC_4S_C0_0
+    RELU6_MACRO VSRC_4S_C1_0
+    RELU6_MACRO VSRC_4S_C2_0
+    RELU6_MACRO VSRC_4S_C3_0
 
     b __STORE
 

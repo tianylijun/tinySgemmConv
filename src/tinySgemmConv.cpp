@@ -345,7 +345,7 @@ int tinySgemmConvReleaseInstance(void *pInstance)
 
 int tinySgemmConvProcess(void *pInstance,
                          float *pInput, float *pOutput,
-                         float *pBasis, bool bRelu, float *pPrelu, bool bSharedPrelu,
+                         float *pBasis, enum TINY_SGEMM_RELU_TYPE reluType, float *pPrelu, bool bSharedPrelu,
                          float (*int8Scale)[3],
                          enum TINY_SGEMM_CONV_DATA_MODE mode)
 {
@@ -439,7 +439,7 @@ int tinySgemmConvProcess(void *pInstance,
         pMsg->JobInfo.sgemmInfo.pC            = pOutput + i*TINY_SGEMM_UNIT_N;
         pMsg->JobInfo.sgemmInfo.pPackB        = psgemmInstance->pPackB[pThreadInfo->index];
         pMsg->JobInfo.sgemmInfo.pBasis        = pBasis;
-        pMsg->JobInfo.sgemmInfo.bRelu         = bRelu;
+        pMsg->JobInfo.sgemmInfo.reluType      = reluType;
         pMsg->JobInfo.sgemmInfo.pPrelu        = pPrelu;
         pMsg->JobInfo.sgemmInfo.bSharedPrelu  = bSharedPrelu;
         pMsg->JobInfo.sgemmInfo.int8Scale     = int8Scale;
@@ -470,7 +470,7 @@ int tinySgemmConvProcess(void *pInstance,
         pMsg->JobInfo.sgemmInfo.pC            = pOutput + blockN*TINY_SGEMM_UNIT_N;
         pMsg->JobInfo.sgemmInfo.pPackB        = psgemmInstance->pPackB[pThreadInfo->index];
         pMsg->JobInfo.sgemmInfo.pBasis        = pBasis;
-        pMsg->JobInfo.sgemmInfo.bRelu         = bRelu;
+        pMsg->JobInfo.sgemmInfo.reluType      = reluType;
         pMsg->JobInfo.sgemmInfo.pPrelu        = pPrelu;
         pMsg->JobInfo.sgemmInfo.bSharedPrelu  = bSharedPrelu;
         pMsg->JobInfo.sgemmInfo.int8Scale     = int8Scale;

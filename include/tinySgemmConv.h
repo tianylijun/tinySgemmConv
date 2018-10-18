@@ -45,6 +45,13 @@ enum TINY_SGEMM_CONV_DATA_MODE
     TINY_SGEMM_CONV_DATA_MODE_A_FIX8_FIX8
 };
 
+enum TINY_SGEMM_RELU_TYPE
+{
+    TINY_SGEMM_RELU_TYPE_NORELU = 0, /* do not change the value, as ASM use it */
+    TINY_SGEMM_RELU_TYPE_RELU,
+    TINY_SGEMM_RELU_TYPE_RELU6
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -63,7 +70,7 @@ void* tinySgemmConvCreateInstance(IN void *pCtx, IN void *pWeight,
 /* pInstance param is return by  tinySgemmConvCreateInstance */
 int tinySgemmConvProcess(IN void *pInstance,
                          IN float *pInput, IN float *pOutput,
-                         IN float *pBasis, IN bool bRelu, IN float *pPrelu, IN bool bSharedPrelu,
+                         IN float *pBasis, IN enum TINY_SGEMM_RELU_TYPE reluType, IN float *pPrelu, IN bool bSharedPrelu,
                          IN float (*int8Scale)[3],
                          IN enum TINY_SGEMM_CONV_DATA_MODE mode);
 

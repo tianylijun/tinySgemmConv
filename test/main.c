@@ -4,12 +4,79 @@
 #include <tinySgemmConv.h>
 #include <sys/time.h>
 #include <math.h>
+#include <arm_neon.h>
+
+#ifndef MAX
+#define MAX(a,b) ((a)>(b))?(a):(b)
+#endif
+#ifndef MIN
+#define MIN(a,b) ((a)<(b))?(a):(b)
+#endif
 
 void conv3x3s1_neon(float *input, int inch, int h, int w, int inChannelSize, float *output, int outch, int outh, int outw, int outChannelSize, const float* kernel, const float* bias, unsigned num_threads);
 void makeborder(float *dst, float *src, unsigned channels, unsigned w, unsigned h, unsigned padw, unsigned padh, unsigned channelAlignSize, float val, unsigned num_threads);
 void padChannelBuffer(float *dst, float *src, unsigned channelSize, unsigned channelPad, unsigned channels, unsigned num_threads);
 void padChannelBufferInv(float *dst, float *src, unsigned channelSize, unsigned channelPad, unsigned channels, unsigned num_threads);
 unsigned alignSize(unsigned sz, int n);
+
+static void relu_padchannel(float *input, float *output, uint32_t output_channels, uint32_t channelSize, uint32_t padOutChannel, unsigned num_threads)
+{
+    int size = channelSize;
+    int inSize = size + padOutChannel;
+    float32x4_t vzerof32x4 = vdupq_n_f32(0.f);
+
+    #pragma omp parallel for num_threads(num_threads)
+    for (int q=0; q<output_channels; q++)
+    {
+        const float* inPtr = input + q*inSize;
+        float* outPtr = output + q*size;
+        int i = 0;
+#ifdef __ARM_NEON
+        for (; i < size - 4; i += 4)
+        {
+            float32x4_t vsrcf32x4 = vld1q_f32(inPtr + i);
+            uint32x4_t vmasku32x4 = vcleq_f32(vsrcf32x4, vzerof32x4);
+            vsrcf32x4 = vbslq_f32(vmasku32x4, vzerof32x4, vsrcf32x4);
+            vst1q_f32(&outPtr[i], vsrcf32x4);
+        }
+#endif
+        for (; i<size; i++)
+        {
+            if (inPtr[i] < 0)
+                outPtr[i] = 0;
+            else
+                outPtr[i] = inPtr[i];
+        }
+    }
+}
+
+static void relu6_padchannel(float *input, float *output, uint32_t output_channels, uint32_t channelSize, uint32_t padOutChannel, unsigned num_threads)
+{
+    int size = channelSize;
+    int inSize = size + padOutChannel;
+    float32x4_t zero = vdupq_n_f32(0.f);
+    float32x4_t six = vdupq_n_f32(6.0f);
+
+    #pragma omp parallel for num_threads(num_threads)
+    for (int q=0; q<output_channels; q++)
+    {
+        const float* inPtr = input + q*inSize;
+        float* outPtr = output + q*size;
+        int i = 0;
+#ifdef __ARM_NEON
+        for (; i < size - 4; i += 4)
+        {
+            float32x4_t vinput = vld1q_f32(inPtr + i);
+            vinput = vmaxq_f32(vinput, zero);
+            vinput = vminq_f32(vinput, six);
+            vst1q_f32(outPtr + i, vinput);
+        }
+#endif
+        for (; i<size; i++)
+            outPtr[i] = MIN(MAX(inPtr[i], 0.0f), 6.0f);
+    }
+}
+
 
 static void showResult(float *pOut, uint32_t data_size)
 {
@@ -27,6 +94,8 @@ int main(int argc, char const *argv[])
     int ret = 0, i = 1, j = 0, outLoopCnt = 5, loopCnt = 5, num_threads = 4;
     uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0, strideW = 1, strideH = 1, outChannels = 128, dilateW = 1, dilateH = 1, outputW, outputH, M, N, K;
     void *pCtx, *psgemmInstance;
+    enum TINY_SGEMM_RELU_TYPE reluType = TINY_SGEMM_RELU_TYPE_NORELU;
+    bool fuse_relu = false, fuse_relu6 = false;
     //uint32_t affinity[MAX_CORE_NUMBER] = {1<<1, 1<<2, 1<<3, 1<<4};
     uint32_t affinity[MAX_CORE_NUMBER] = {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff};
     struct timeval beg, end;
@@ -42,6 +111,11 @@ int main(int argc, char const *argv[])
     if (argc > 9)  strideW      = atoi(argv[i++]);
     if (argc > 10) strideH      = atoi(argv[i++]);
     if (argc > 11) outChannels  = atoi(argv[i++]);
+
+    if (fuse_relu)
+        reluType = TINY_SGEMM_RELU_TYPE_RELU;
+    else if (fuse_relu6)
+        reluType = TINY_SGEMM_RELU_TYPE_RELU6;
 
     outputW = (inputW + padW*2 - kernelW)/strideW + 1;
     outputH = (inputH + padH*2 - kernelH)/strideH + 1;
@@ -67,8 +141,8 @@ int main(int argc, char const *argv[])
         return -1;
     }
 
-    for (i = 0; i < M * K; i++)                    pWeight[i] = (rand()%1000)/1000.0f;
-    for (i = 0; i < inChannels*inputW*inputH; i++) pInput[i]  = (rand()%1000)/1000.0f;
+    for (i = 0; i < M * K; i++)                    pWeight[i] = (powf(-1, (rand()%2))*(rand()%1000))*1.0f;
+    for (i = 0; i < inChannels*inputW*inputH; i++) pInput[i]  = (powf(-1, (rand()%2))*(rand()%1000))*1.0f;
 
 #if 1
     gettimeofday(&beg, NULL);
@@ -96,7 +170,11 @@ int main(int argc, char const *argv[])
                        align_output, outChannels, outputH, outputW, outputH*outputW + padOutChannel,
                        pWeight, NULL, num_threads);
 
-        if (padOutChannel)
+        if (fuse_relu)
+            relu_padchannel(align_output, pOutput + M*N, M, N, padOutChannel, num_threads);
+        else if (fuse_relu6)
+            relu6_padchannel(align_output, pOutput + M*N, M, N, padOutChannel, num_threads);
+        else if (padOutChannel)
             padChannelBufferInv(pOutput + M*N, align_output, outputH*outputW, padOutChannel, outChannels, num_threads);
     }
     gettimeofday(&end, NULL);
@@ -127,7 +205,7 @@ int main(int argc, char const *argv[])
 
         for (i = 0; i < loopCnt; ++i)
             ret = tinySgemmConvProcess(psgemmInstance, pInput, pOutput,
-                                       NULL, false, NULL, false, NULL,
+                                       NULL, reluType, NULL, false, NULL,
                                        TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
 
         gettimeofday(&end, NULL);
@@ -142,9 +220,12 @@ int main(int argc, char const *argv[])
     {
         for (j = 0; j < N; j++)
         {
-            if (fabs(*(pOutput + i * N + j) - *(pOutput + M*N + i * N + j))/fabs(*(pOutput + i * N + j)) > 0.1f)
+            if (fabs(fabs(*(pOutput + i * N + j)) - fabs(*(pOutput + M*N + i * N + j)))/fabs(*(pOutput + i * N + j)) > 0.1f)
             {
-                printf("%f %f\n", *(pOutput + i * N + j), *(pOutput + M*N + i * N + j));
+                printf("[%d, %d] %f %f\n", i, j, *(pOutput + i * N + j), *(pOutput + M*N + i * N + j));
+                printf("[%d, %d] %f %f\n", i, j + 1, *(pOutput + i * N + j + 1), *(pOutput + M*N + i * N + j + 1));
+                printf("[%d, %d] %f %f\n", i, j + 2, *(pOutput + i * N + j + 2), *(pOutput + M*N + i * N + j + 2));
+                printf("[%d, %d] %f %f\n", i, j + 3, *(pOutput + i * N + j + 3), *(pOutput + M*N + i * N + j + 3));
                 sameFlag = 0;
                 break;
             }
