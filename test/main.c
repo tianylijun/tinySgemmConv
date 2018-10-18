@@ -91,13 +91,13 @@ static void showResult(float *pOut, uint32_t data_size)
 
 int main(int argc, char const *argv[])
 {
-    int ret = 0, i = 1, j = 0, outLoopCnt = 5, loopCnt = 5, num_threads = 4;
+    int ret = 0, i = 1, j = 0, outLoopCnt = 1, loopCnt = 10, num_threads = 4;
     uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0, strideW = 1, strideH = 1, outChannels = 128, dilateW = 1, dilateH = 1, outputW, outputH, M, N, K;
     void *pCtx, *psgemmInstance;
     enum TINY_SGEMM_RELU_TYPE reluType = TINY_SGEMM_RELU_TYPE_NORELU;
-    bool fuse_relu = false, fuse_relu6 = false;
-    //uint32_t affinity[MAX_CORE_NUMBER] = {1<<1, 1<<2, 1<<3, 1<<4};
-    uint32_t affinity[MAX_CORE_NUMBER] = {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff};
+    bool fuse_relu = true, fuse_relu6 = false;
+    //uint32_t affinity[MAX_CORE_NUMBER] = {0xf0, 0xf0, 0xf0, 0xf};
+    uint32_t affinity[MAX_CORE_NUMBER] = {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff};
     struct timeval beg, end;
 
     if (argc > 1)  num_threads  = atoi(argv[i++]);
@@ -189,7 +189,7 @@ int main(int argc, char const *argv[])
 
     for (j = 0; j < outLoopCnt; ++j)
     {
-        ret =  tinySgemmConvInit(num_threads, THREAD_STACK_SIZE, &affinity, &pCtx);
+        ret =  tinySgemmConvInit(num_threads, THREAD_STACK_SIZE, &affinity, true, &pCtx);
         printf("Init ok\n");
         psgemmInstance = tinySgemmConvCreateInstance(pCtx,
                          pWeight,
@@ -221,12 +221,13 @@ int main(int argc, char const *argv[])
     {
         for (j = 0; j < N; j++)
         {
-            if (fabs(fabs(*(pOutput + i * N + j)) - fabs(*(pOutput + M*N + i * N + j)))/fabs(*(pOutput + i * N + j)) > 0.1f)
+            //if (fabs(fabs(*(pOutput + i * N + j)) - fabs(*(pOutput + M*N + i * N + j)))/fabs(*(pOutput + i * N + j)) > 0.1f)
+            if (*(pOutput + i * N + j) != *(pOutput + M*N + i * N + j))
             {
                 printf("[%d, %d] %f %f\n", i, j, *(pOutput + i * N + j), *(pOutput + M*N + i * N + j));
-                printf("[%d, %d] %f %f\n", i, j + 1, *(pOutput + i * N + j + 1), *(pOutput + M*N + i * N + j + 1));
-                printf("[%d, %d] %f %f\n", i, j + 2, *(pOutput + i * N + j + 2), *(pOutput + M*N + i * N + j + 2));
-                printf("[%d, %d] %f %f\n", i, j + 3, *(pOutput + i * N + j + 3), *(pOutput + M*N + i * N + j + 3));
+                //printf("[%d, %d] %f %f\n", i, j + 1, *(pOutput + i * N + j + 1), *(pOutput + M*N + i * N + j + 1));
+                //printf("[%d, %d] %f %f\n", i, j + 2, *(pOutput + i * N + j + 2), *(pOutput + M*N + i * N + j + 2));
+                //printf("[%d, %d] %f %f\n", i, j + 3, *(pOutput + i * N + j + 3), *(pOutput + M*N + i * N + j + 3));
                 sameFlag = 0;
                 break;
             }

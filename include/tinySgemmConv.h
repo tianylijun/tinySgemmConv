@@ -56,7 +56,7 @@ enum TINY_SGEMM_RELU_TYPE
 extern "C" {
 #endif
 
-int tinySgemmConvInit(IN uint32_t num_threads, IN int32_t stack_size, IN uint32_t (*affinity)[MAX_CORE_NUMBER], OUT void **pCtx);
+int tinySgemmConvInit(IN uint32_t num_threads, IN int32_t stack_size, IN uint32_t (*affinity)[MAX_CORE_NUMBER], IN bool bindBigCore, OUT void **pCtx);
 
 /* pCtx param is return by  tinySgemmConvInit */
 void* tinySgemmConvCreateInstance(IN void *pCtx, IN void *pWeight,

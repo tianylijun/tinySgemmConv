@@ -89,6 +89,7 @@ uint32_t getAvaiableCoresMaxFreq(uint32_t (*coreMaxFreqs)[MAX_CORE_NUMBER], uint
     }
     if (NULL != maxFreq)
         *maxFreq = max_freq_khz;
+
     return availCores;
 }
 
@@ -140,7 +141,6 @@ struct thread_info *getMinJobsNumThread(struct tinySgemmConvCtx *pCtx, struct li
             }
         }
     }
-
     if (MSG_CMD_SGEMM == cmd)
         pThreadInfoRet->sgemmJobsDoneNum++;
     else if (MSG_CMD_IM2COL == cmd)
@@ -192,10 +192,11 @@ void * sgemm_thread_process(void *args)
         }
         else
             printf("Warning:: skip set thread %d affinity(0x%x), as core not avaiable\n", pThreadInfo->index, pThreadInfo->affinity);
-#ifdef DEBUG_AFFINETY
-        showAffinty(pThreadInfo);
-#endif
     }
+
+#ifdef DEBUG_AFFINETY
+    showAffinty(pThreadInfo);
+#endif
 
     INIT_LIST_HEAD(&pThreadInfo->msgQueueList);
     ret = pthread_mutex_init(&pThreadInfo->msgQueueLock, NULL);
