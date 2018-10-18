@@ -23,6 +23,7 @@
 #include <sys/time.h>
 #include <limits.h>
 #include <assert.h>
+#include <math.h>
 #include <tinySgemmConv.h>
 #include "list.h"
 #include "common.h"
@@ -212,6 +213,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
                                   uint32_t padH, uint32_t padW,
                                   uint32_t strideH, uint32_t strideW,
                                   uint32_t dilateH, uint32_t dilateW,
+                                  bool tf_pad,
                                   enum TINY_SGEMM_CONV_DATA_MODE mode)
 {
     uint32_t i, packBTypeSize, packATypeSize, packBSize;
@@ -223,6 +225,8 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     uint32_t M = outChannels;
     uint32_t N = outputH*outputW;
     uint32_t K = inChannels*kernelH*kernelW;
+    bool pad_only_bottom = false, pad_only_right = false;
+    int padding_bottom = 0, padding_right = 0;
     struct tinySgemmConvCtx *pCtxInner = (struct tinySgemmConvCtx *)pCtx;
 
     POINTER_CHECK(pCtx, NULL);
@@ -230,6 +234,27 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
 
     psgemmInstance = (struct tinySgemmInstance*)calloc(1, sizeof(struct tinySgemmInstance));
     POINTER_CHECK(psgemmInstance, NULL);
+
+    if (tf_pad) /* TF SAME */
+    {
+        int pad_all_height, pad_all_width, padding_top, padding_left;
+
+        outputW  = ceil((float)inputW / (float)strideW);
+        outputH = ceil((float)inputH / (float)strideH);
+        N = outputH*outputW;
+
+        pad_all_height = (outputH - 1) * strideH + kernelH - inputH;
+        padding_top = int(pad_all_height / 2.0);
+        padding_bottom = pad_all_height - padding_top;
+
+        pad_all_width = (outputW - 1) * strideW + kernelW - inputW;
+        padding_left = int(pad_all_width / 2.0);
+        padding_right = pad_all_width - padding_left;
+
+        pad_only_bottom = padding_top == 0?true:false;
+        pad_only_right = padding_left == 0?true:false;
+        printf("TF conv pad: [%d %d %d %d]\n", padding_left, padding_right, padding_top, padding_bottom);
+    }
 
     switch(mode)
     {
@@ -312,8 +337,18 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     psgemmInstance->outChannels        = outChannels;
     psgemmInstance->kernelH            = kernelH;
     psgemmInstance->kernelW            = kernelW;
-    psgemmInstance->padH               = padH;
-    psgemmInstance->padW               = padW;
+    if (tf_pad)
+    {
+        psgemmInstance->padH           = padding_bottom;
+        psgemmInstance->padW           = pad_only_right;
+    }
+    else
+    {
+        psgemmInstance->padH           = padH;
+        psgemmInstance->padW           = padW;
+    }
+    psgemmInstance->pad_only_bottom    = pad_only_bottom;
+    psgemmInstance->pad_only_right     = pad_only_right;
     psgemmInstance->strideH            = strideH;
     psgemmInstance->strideW            = strideW;
     psgemmInstance->dilateH            = dilateH;
@@ -406,6 +441,8 @@ int tinySgemmConvProcess(void *pInstance,
             pMsg->JobInfo.im2colInfo.width    = psgemmInstance->inputW;
             pMsg->JobInfo.im2colInfo.outType  = packBDataType;
             pMsg->JobInfo.im2colInfo.pB       = pInput + i*inputChannelSize;
+            pMsg->JobInfo.im2colInfo.pad_only_bottom = psgemmInstance->pad_only_bottom;
+            pMsg->JobInfo.im2colInfo.pad_only_right = psgemmInstance->pad_only_right;
             pMsg->JobInfo.im2colInfo.pBIm2col = psgemmInstance->pBIm2col + i*psgemmInstance->kernelH*psgemmInstance->kernelW*N*packBTypeSize;
 
             sendMsg(pMsg);

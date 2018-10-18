@@ -198,6 +198,7 @@ int main(int argc, char const *argv[])
                          padH, padW,
                          strideH, strideW,
                          dilateH, dilateW,
+                         false,
                          TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
         printf("Instance create ok\n");
 

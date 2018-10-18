@@ -65,6 +65,7 @@ void* tinySgemmConvCreateInstance(IN void *pCtx, IN void *pWeight,
                                   IN uint32_t padH, IN uint32_t padW,
                                   IN uint32_t strideH, IN uint32_t strideW,
                                   IN uint32_t dilateH, IN uint32_t dilateW,
+                                  IN bool tf_pad,
                                   IN enum TINY_SGEMM_CONV_DATA_MODE mode);
 
 /* pInstance param is return by  tinySgemmConvCreateInstance */

@@ -87,6 +87,8 @@ struct im2colJobInfo
     uint32_t height;
     uint32_t width;
     enum SGEMM_DataType outType;
+    bool pad_only_bottom;
+    bool pad_only_right;
 };
 
 struct msg

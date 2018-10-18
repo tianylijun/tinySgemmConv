@@ -396,7 +396,8 @@ void * sgemm_thread_process(void *args)
                                           pMsg->JobInfo.im2colInfo.kernelH, pMsg->JobInfo.im2colInfo.kernelW,
                                           pMsg->JobInfo.im2colInfo.padH,    pMsg->JobInfo.im2colInfo.padW,
                                           pMsg->JobInfo.im2colInfo.strideH, pMsg->JobInfo.im2colInfo.strideW,
-                                          pMsg->JobInfo.im2colInfo.dilateH, pMsg->JobInfo.im2colInfo.dilateW);
+                                          pMsg->JobInfo.im2colInfo.dilateH, pMsg->JobInfo.im2colInfo.dilateW,
+                                          pMsg->JobInfo.im2colInfo.pad_only_bottom, pMsg->JobInfo.im2colInfo.pad_only_right);
             }
             else
             {

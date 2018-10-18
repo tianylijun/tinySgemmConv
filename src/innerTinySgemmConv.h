@@ -71,6 +71,8 @@ struct tinySgemmInstance
     uint32_t kernelW;
     uint32_t padH;
     uint32_t padW;
+    bool pad_only_bottom;
+    bool pad_only_right;
     uint32_t strideH;
     uint32_t strideW;
     uint32_t dilateH;
