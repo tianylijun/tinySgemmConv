@@ -107,13 +107,14 @@ void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *jobsQueue)
         list_del(&pMsg->listJobsQueue);
         pthread_mutex_unlock(&pMsg->lock);
 #ifdef HREAD_STASTIC_INFO_ENABLE
-        printf("[%d][%d] msg: %llu, done in %llu us\n", pMsg->cmd, pMsg->pThreadInfo->index, pMsg->sequenceId, pMsg->end - pMsg->beg);
+        printf("[%d][%d] msg: %llu, done in %llu us\n", pMsg->cmd, pMsg->pThreadInfo->index, pMsg->sequenceId, pMsg->timeStampEnd - pMsg->timeStampBeg);
 #endif
         returnMsg(pCtx, pMsg);
     }
 }
 
-struct thread_info *getMinJobsNumThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
+#ifdef MOSTFREE_JOBS_NUM
+static struct thread_info *getMinJobsNumThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
 {
     struct thread_info *pThreadInfoRet = NULL;
     uint64_t minJobsDoneNum = 0xffffffffffffffff;
@@ -147,6 +148,42 @@ struct thread_info *getMinJobsNumThread(struct tinySgemmConvCtx *pCtx, struct li
         pThreadInfoRet->im2colJobsDoneNum++;
     pthread_mutex_unlock(&pCtx->threadLock);
     return pThreadInfoRet;
+}
+
+#else
+
+static struct thread_info *getMinTimeThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
+{
+    struct thread_info *pThreadInfoRet = NULL;
+    uint64_t minTIme = 0xffffffffffffffff;
+    struct list_head *pos;
+    assert(NULL != pHead);
+
+    (void)cmd;
+    pthread_mutex_lock(&pCtx->threadLock);
+    list_for_each(pos, pHead)
+    {
+        struct thread_info *pThreadInfo = list_entry(pos, struct thread_info, biglittlecorelist);
+        //uint64_t curThreadTime = pThreadInfo->totalMsgTime[cmd];
+        uint64_t curThreadTime = pThreadInfo->totalMsgTime[0];
+        if (curThreadTime < minTIme)
+        {
+            minTIme = curThreadTime;
+            pThreadInfoRet = pThreadInfo;
+        }
+    }
+    pthread_mutex_unlock(&pCtx->threadLock);
+    return pThreadInfoRet;
+}
+#endif
+
+struct thread_info *getMostFreeThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
+{
+#ifdef MOSTFREE_JOBS_NUM
+    return getMinJobsNumThread(pCtx, pHead, cmd);
+#else
+    return getMinTimeThread(pCtx, pHead, cmd);
+#endif
 }
 
 void * sgemm_thread_process(void *args)
@@ -416,6 +453,16 @@ void * sgemm_thread_process(void *args)
         }
 
         pMsg->timeStampEnd = timestamp();
+        switch(pMsg->cmd)
+        {
+        case MSG_CMD_SGEMM:
+        case MSG_CMD_IM2COL:
+            //pThreadInfo->totalMsgTime[pMsg->cmd] += pMsg->timeStampEnd - pMsg->timeStampBeg;
+            pThreadInfo->totalMsgTime[0] += pMsg->timeStampEnd - pMsg->timeStampBeg;
+            break;
+        default:
+            break;
+        }
         pthread_mutex_lock(&pMsg->lock);
         pMsg->status = MSG_STATUS_DONE;
         pthread_cond_signal(&pMsg->jobDoneCondition);

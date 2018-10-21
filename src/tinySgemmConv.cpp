@@ -456,9 +456,9 @@ int tinySgemmConvProcess(void *pInstance,
         {
             struct thread_info *pThreadInfo = NULL;
             if (!list_empty(&pCtxInner->bigCoreThreads))
-                pThreadInfo = getMinJobsNumThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_IM2COL);
+                pThreadInfo = getMostFreeThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_IM2COL);
             if ((NULL == pThreadInfo) && !list_empty(&pCtxInner->littleCoreThreads))
-                pThreadInfo = getMinJobsNumThread(pCtxInner, &pCtxInner->littleCoreThreads, MSG_CMD_IM2COL);
+                pThreadInfo = getMostFreeThread(pCtxInner, &pCtxInner->littleCoreThreads, MSG_CMD_IM2COL);
             assert(NULL != pThreadInfo);
             struct msg *pMsg                  = fetchMsg(pCtxInner);
             assert(NULL != pMsg);
@@ -495,9 +495,9 @@ int tinySgemmConvProcess(void *pInstance,
     {
         struct thread_info *pThreadInfo = NULL;
         if (!list_empty(&pCtxInner->bigCoreThreads))
-            pThreadInfo = getMinJobsNumThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_SGEMM);
+            pThreadInfo = getMostFreeThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_SGEMM);
         if ((NULL == pThreadInfo) && !list_empty(&pCtxInner->littleCoreThreads))
-            pThreadInfo = getMinJobsNumThread(pCtxInner, &pCtxInner->littleCoreThreads, MSG_CMD_SGEMM);
+            pThreadInfo = getMostFreeThread(pCtxInner, &pCtxInner->littleCoreThreads, MSG_CMD_SGEMM);
         assert(NULL != pThreadInfo);
         struct msg *pMsg                      = fetchMsg(pCtxInner);
         assert(NULL != pMsg);
@@ -527,9 +527,9 @@ int tinySgemmConvProcess(void *pInstance,
     {
         struct thread_info *pThreadInfo = NULL;
         if (!list_empty(&pCtxInner->littleCoreThreads))
-            pThreadInfo = getMinJobsNumThread(pCtxInner, &pCtxInner->littleCoreThreads, MSG_CMD_SGEMM);
+            pThreadInfo = getMostFreeThread(pCtxInner, &pCtxInner->littleCoreThreads, MSG_CMD_SGEMM);
         if ((NULL == pThreadInfo) && !list_empty(&pCtxInner->bigCoreThreads))
-            pThreadInfo = getMinJobsNumThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_SGEMM);
+            pThreadInfo = getMostFreeThread(pCtxInner, &pCtxInner->bigCoreThreads, MSG_CMD_SGEMM);
         assert(NULL != pThreadInfo);
         struct msg *pMsg                      = fetchMsg(pCtxInner);
         pMsg->pThreadInfo                     = pThreadInfo;

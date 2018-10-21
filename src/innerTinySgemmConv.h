@@ -37,6 +37,7 @@ struct thread_info
     struct list_head biglittlecorelist;
     uint64_t sgemmJobsDoneNum;
     uint64_t im2colJobsDoneNum;
+    uint64_t totalMsgTime[MSG_CMD_END];
 };
 
 struct tinySgemmConvCtx

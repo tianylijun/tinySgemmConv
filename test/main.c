@@ -92,7 +92,8 @@ static void showResult(float *pOut, uint32_t data_size)
 int main(int argc, char const *argv[])
 {
     int ret = 0, i = 1, j = 0, outLoopCnt = 1, loopCnt = 10, num_threads = 4;
-    uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0, strideW = 1, strideH = 1, outChannels = 128, dilateW = 1, dilateH = 1, outputW, outputH, M, N, K;
+    uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0;
+    uint32_t strideW = 1, strideH = 1, outChannels = 128, dilateW = 1, dilateH = 1, outputW, outputH, M, N, K;
     void *pCtx, *psgemmInstance;
     enum TINY_SGEMM_RELU_TYPE reluType = TINY_SGEMM_RELU_TYPE_NORELU;
     bool fuse_relu = true, fuse_relu6 = false;
@@ -100,6 +101,7 @@ int main(int argc, char const *argv[])
     uint32_t affinity[MAX_CORE_NUMBER] = {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff};
     struct timeval beg, end;
 
+    printf("e.g. %s num_threads inChannels inputW inputH kernelW kernelH padW padH strideW strideH outChannels\n", argv[0]);
     if (argc > 1)  num_threads  = atoi(argv[i++]);
     if (argc > 2)  inChannels   = atoi(argv[i++]);
     if (argc > 3)  inputW       = atoi(argv[i++]);
@@ -132,10 +134,11 @@ int main(int argc, char const *argv[])
            strideW, strideH,
            outChannels, outputW, outputH);
 
-    float *pWeight = malloc(M*K*sizeof(float));
-    float *pInput  = malloc(inChannels*inputW*inputH*sizeof(float));
-    float *pOutput = malloc(2*M*N*sizeof(float));
-    if (NULL == pWeight || NULL == pInput || NULL == pOutput)
+    float *pWeight = malloc((M*K + inChannels*inputW*inputH + 2*M*N)*sizeof(float));
+    float *pInput  = pWeight + M*K;
+    float *pOutputRef = pInput + inChannels*inputW*inputH;
+    float *pOutput = pOutputRef + M*N;
+    if (NULL == pWeight)
     {
         printf("%s\n", "malloc failed");
         return -1;
@@ -164,22 +167,22 @@ int main(int argc, char const *argv[])
             if (padInputSize) padChannelBuffer(align_input, pInput, inputH*inputW, padInputSize, inChannels, num_threads);
             else align_input = pInput;
         }
-        if (0 == padOutChannel) align_output = pOutput + M*N;
+        if (0 == padOutChannel) align_output = pOutputRef + M*N;
 
         conv3x3s1_neon(align_input,  inChannels,  inputH+2*padH,  inputW+2*padW,  (inputH+2*padH)*(inputW+2*padW)+padInputSize,
                        align_output, outChannels, outputH, outputW, outputH*outputW + padOutChannel,
                        pWeight, NULL, num_threads);
 
         if (fuse_relu)
-            relu_padchannel(align_output, pOutput + M*N, M, N, padOutChannel, num_threads);
+            relu_padchannel(align_output, pOutputRef + M*N, M, N, padOutChannel, num_threads);
         else if (fuse_relu6)
-            relu6_padchannel(align_output, pOutput + M*N, M, N, padOutChannel, num_threads);
+            relu6_padchannel(align_output, pOutputRef + M*N, M, N, padOutChannel, num_threads);
         else if (padOutChannel)
-            padChannelBufferInv(pOutput + M*N, align_output, outputH*outputW, padOutChannel, outChannels, num_threads);
+            padChannelBufferInv(pOutputRef + M*N, align_output, outputH*outputW, padOutChannel, outChannels, num_threads);
     }
     gettimeofday(&end, NULL);
     printf("[Ref] time: %ld ms, avg time : %.3f ms, loop: %d threads: %d\n\n", (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/(1000.0*loopCnt), loopCnt, num_threads);
-    showResult(pOutput + M*N, M*N);
+    showResult(pOutputRef, M*N);
     if (0 != (padW + padH) || 0 != padInputSize)
         free(align_input);
     if (align_output)
@@ -187,10 +190,11 @@ int main(int argc, char const *argv[])
     printf("direct end\n");
 #endif
 
+    ret =  tinySgemmConvInit(num_threads, THREAD_STACK_SIZE, &affinity, true, &pCtx);
+    printf("Init ok\n");
+
     for (j = 0; j < outLoopCnt; ++j)
     {
-        ret =  tinySgemmConvInit(num_threads, THREAD_STACK_SIZE, &affinity, true, &pCtx);
-        printf("Init ok\n");
         psgemmInstance = tinySgemmConvCreateInstance(pCtx,
                          pWeight,
                          inChannels,  inputH, inputW,
@@ -211,9 +215,10 @@ int main(int argc, char const *argv[])
 
         gettimeofday(&end, NULL);
         ret = tinySgemmConvReleaseInstance(psgemmInstance);
-        ret = tinySgemmConvDeinit(pCtx);
         printf("[%02d/%02d] time: %ld ms, avg time : %.3f ms, loop: %d threads: %d\n\n", j, outLoopCnt, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/(1000.0*loopCnt), loopCnt, num_threads);
     }
+
+    ret = tinySgemmConvDeinit(pCtx);
     showResult(pOutput, M*N);
 
     int sameFlag = 1;
@@ -221,13 +226,9 @@ int main(int argc, char const *argv[])
     {
         for (j = 0; j < N; j++)
         {
-            //if (fabs(fabs(*(pOutput + i * N + j)) - fabs(*(pOutput + M*N + i * N + j)))/fabs(*(pOutput + i * N + j)) > 0.1f)
-            if (*(pOutput + i * N + j) != *(pOutput + M*N + i * N + j))
+            if (pOutputRef[i * N + j] != pOutput[i * N + j])
             {
-                printf("[%d, %d] %f %f\n", i, j, *(pOutput + i * N + j), *(pOutput + M*N + i * N + j));
-                //printf("[%d, %d] %f %f\n", i, j + 1, *(pOutput + i * N + j + 1), *(pOutput + M*N + i * N + j + 1));
-                //printf("[%d, %d] %f %f\n", i, j + 2, *(pOutput + i * N + j + 2), *(pOutput + M*N + i * N + j + 2));
-                //printf("[%d, %d] %f %f\n", i, j + 3, *(pOutput + i * N + j + 3), *(pOutput + M*N + i * N + j + 3));
+                printf("[%d, %d] %f %f\n", i, j, pOutput[i * N + j], pOutputRef[i * N + j]);
                 sameFlag = 0;
                 break;
             }
@@ -238,10 +239,6 @@ int main(int argc, char const *argv[])
 
     if (pWeight)
         free(pWeight);
-    if (pInput)
-        free(pInput);
-    if (pOutput)
-        free(pOutput);
     printf("compare %s\n",(sameFlag)?"same":"diff");
     return 0;
 }

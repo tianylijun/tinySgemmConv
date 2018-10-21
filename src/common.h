@@ -19,7 +19,8 @@
 #define __TINYSGEMM_COMMON_H
 
 #include <pthread.h>
-#include <sys/time.h>
+//#include <sys/time.h>
+#include <time.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -63,12 +64,21 @@ static inline unsigned alignSize(unsigned sz, int n)
     return (sz + n-1) & -n;
 }
 
+#if 1
+static inline unsigned long timestamp(void)
+{
+    struct timespec tv;
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tv);
+    return (unsigned long)tv.tv_sec * 1000000000ul + tv.tv_nsec;
+}
+#else
 static inline unsigned long timestamp(void)
 {
     struct timeval tv;
     gettimeofday(&tv,NULL);
     return (unsigned long)tv.tv_sec * 1000000ul + tv.tv_usec;
 }
+#endif
 
 #define TIME_STASTIC_ENABLE
 #ifdef TIME_STASTIC_ENABLE
