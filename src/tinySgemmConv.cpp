@@ -256,7 +256,7 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     uint32_t N = outputH*outputW;
     uint32_t K = inChannels*kernelH*kernelW;
     bool pad_only_bottom = false, pad_only_right = false;
-    int padding_bottom = 0, padding_right = 0;
+    int padding_top = padH, padding_left = padW, padding_bottom = padH, padding_right = padW;
     struct tinySgemmConvCtx *pCtxInner = (struct tinySgemmConvCtx *)pCtx;
 
     POINTER_CHECK(pCtx, NULL);
@@ -267,22 +267,22 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
 
     if (tf_pad) /* TF SAME */
     {
-        int pad_all_height, pad_all_width, padding_top, padding_left;
+        int pad_all_height, pad_all_width;
 
-        outputW  = ceil((float)inputW / (float)strideW);
+        outputW = ceil((float)inputW / (float)strideW);
         outputH = ceil((float)inputH / (float)strideH);
-        N = outputH*outputW;
+        N       = outputH*outputW;
 
         pad_all_height = (outputH - 1) * strideH + kernelH - inputH;
-        padding_top = int(pad_all_height / 2.0);
+        padding_top    = int(pad_all_height / 2.0);
         padding_bottom = pad_all_height - padding_top;
 
         pad_all_width = (outputW - 1) * strideW + kernelW - inputW;
-        padding_left = int(pad_all_width / 2.0);
+        padding_left  = int(pad_all_width / 2.0);
         padding_right = pad_all_width - padding_left;
 
-        pad_only_bottom = padding_top == 0?true:false;
-        pad_only_right = padding_left == 0?true:false;
+        pad_only_bottom = padding_top  == 0?true:false;
+        pad_only_right  = padding_left == 0?true:false;
         printf("TF conv pad: [%d %d %d %d]\n", padding_left, padding_right, padding_top, padding_bottom);
     }
 
@@ -314,7 +314,8 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
         break;
     }
 
-    if (kernelW == 1 && kernelH == 1 && strideH == 1 && strideW == 1 && padH == 0 && padW == 0)
+    if (1 == kernelW && 1 == kernelH && 1 == strideH && 1 == strideW && 1 == dilateH && 1 == dilateW &&
+            0 == padding_top && 0 == padding_left && 0 == padding_bottom && 0 == padding_right)
     {
         pBIm2col      = NULL;
         packBTypeSize = sizeof(float);
@@ -337,7 +338,8 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     if (NULL == pPackB)
     {
         printf("packB + packA buffer malloc failed\n");
-        if (kernelW != 1 || kernelH != 1 || strideH != 1 || strideW != 1 || padH != 0 || padW != 0)
+        if (1 != kernelW || 1 != kernelH || 1 != strideH || 1 != strideW || 1 != dilateH || 1 != dilateW ||
+                0 != padding_top || 0 != padding_left || 0 != padding_bottom || 0 != padding_right)
             tinySgemmFree(pBIm2col);
         free(psgemmInstance);
         return NULL;
@@ -350,7 +352,6 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
         tinySgemmConvPackA4x4_fp32_fp32((float*)pWeight, (float*)pPackA, M, K);
         break;
     case FLOAT16_TYPE:
-        //tinySgemmConvPackA4x4_fp32_fp16((float*)pWeight, (float*)pPackA, M, K);
         break;
     case INT16_TYPE:
         break;
@@ -367,16 +368,8 @@ void* tinySgemmConvCreateInstance(void *pCtx, void *pWeight,
     psgemmInstance->outChannels        = outChannels;
     psgemmInstance->kernelH            = kernelH;
     psgemmInstance->kernelW            = kernelW;
-    if (tf_pad)
-    {
-        psgemmInstance->padH           = padding_bottom;
-        psgemmInstance->padW           = pad_only_right;
-    }
-    else
-    {
-        psgemmInstance->padH           = padH;
-        psgemmInstance->padW           = padW;
-    }
+    psgemmInstance->padH               = padding_bottom;
+    psgemmInstance->padW               = padding_right;
     psgemmInstance->pad_only_bottom    = pad_only_bottom;
     psgemmInstance->pad_only_right     = pad_only_right;
     psgemmInstance->strideH            = strideH;
@@ -401,7 +394,6 @@ int tinySgemmConvReleaseInstance(void *pInstance)
 {
     struct tinySgemmInstance *pInnerInstance = (struct tinySgemmInstance *)pInstance;
     POINTER_CHECK(pInnerInstance, -1);
-    /* NULL pointer check inner */
     tinySgemmFree(pInnerInstance->pBIm2col);
     tinySgemmFree(pInnerInstance->pPackB[0]);
     free(pInnerInstance);
@@ -477,7 +469,7 @@ int tinySgemmConvProcess(void *pInstance,
             pMsg->JobInfo.im2colInfo.outType  = packBDataType;
             pMsg->JobInfo.im2colInfo.pB       = pInput + i*inputChannelSize;
             pMsg->JobInfo.im2colInfo.pad_only_bottom = psgemmInstance->pad_only_bottom;
-            pMsg->JobInfo.im2colInfo.pad_only_right = psgemmInstance->pad_only_right;
+            pMsg->JobInfo.im2colInfo.pad_only_right  = psgemmInstance->pad_only_right;
             pMsg->JobInfo.im2colInfo.pBIm2col = psgemmInstance->pBIm2col + i*psgemmInstance->kernelH*psgemmInstance->kernelW*N*packBTypeSize;
 
             sendMsg(pMsg);

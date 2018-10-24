@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "config.h"
 #include "list.h"
 #include "tinySgemmConv.h"
 #include "innerTinySgemmConv.h"
@@ -28,7 +29,13 @@
 
 uint32_t getAvaiableCoresMaxFreq(uint32_t (*coreMaxFreqs)[MAX_CORE_NUMBER], uint32_t *maxFreq);
 void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *workQueue);
-struct thread_info *getMostFreeThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd);
+#ifdef SCHEDULE_BY_JOBS_NUM
+struct thread_info *getMinJobsNumThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd);
+#define getMostFreeThread getMinJobsNumThread
+#else
+struct thread_info *getMinTimeThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd);
+#define getMostFreeThread getMinTimeThread
+#endif
 void *sgemm_thread_process(void *args);
 
 #endif

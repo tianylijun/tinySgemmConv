@@ -113,8 +113,8 @@ void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *jobsQueue)
     }
 }
 
-#ifdef MOSTFREE_JOBS_NUM
-static struct thread_info *getMinJobsNumThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
+#ifdef SCHEDULE_BY_JOBS_NUM
+struct thread_info *getMinJobsNumThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
 {
     struct thread_info *pThreadInfoRet = NULL;
     uint64_t minJobsDoneNum = 0xffffffffffffffff;
@@ -149,13 +149,11 @@ static struct thread_info *getMinJobsNumThread(struct tinySgemmConvCtx *pCtx, st
     pthread_mutex_unlock(&pCtx->threadLock);
     return pThreadInfoRet;
 }
-
 #else
-
-static struct thread_info *getMinTimeThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
+struct thread_info *getMinTimeThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
 {
     struct thread_info *pThreadInfoRet = NULL;
-    uint64_t minTIme = 0xffffffffffffffff;
+    uint64_t minTime = 0xffffffffffffffff;
     struct list_head *pos;
     assert(NULL != pHead);
 
@@ -165,10 +163,10 @@ static struct thread_info *getMinTimeThread(struct tinySgemmConvCtx *pCtx, struc
     {
         struct thread_info *pThreadInfo = list_entry(pos, struct thread_info, biglittlecorelist);
         //uint64_t curThreadTime = pThreadInfo->totalMsgTime[cmd];
-        uint64_t curThreadTime = pThreadInfo->totalMsgTime[0];
-        if (curThreadTime < minTIme)
+        uint64_t totalMsgTime = pThreadInfo->totalMsgTime[0];
+        if (totalMsgTime < minTime)
         {
-            minTIme = curThreadTime;
+            minTime = totalMsgTime;
             pThreadInfoRet = pThreadInfo;
         }
     }
@@ -176,15 +174,6 @@ static struct thread_info *getMinTimeThread(struct tinySgemmConvCtx *pCtx, struc
     return pThreadInfoRet;
 }
 #endif
-
-struct thread_info *getMostFreeThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
-{
-#ifdef MOSTFREE_JOBS_NUM
-    return getMinJobsNumThread(pCtx, pHead, cmd);
-#else
-    return getMinTimeThread(pCtx, pHead, cmd);
-#endif
-}
 
 void * sgemm_thread_process(void *args)
 {
