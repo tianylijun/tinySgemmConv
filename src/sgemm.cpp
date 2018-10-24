@@ -31,23 +31,23 @@
 
 #ifdef __aarch64__
 
-extern "C" void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
-extern "C" void sgemm2xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
-extern "C" void sgemm1xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
-extern "C" void sgemm4xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
-extern "C" void sgemm2xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
-extern "C" void sgemm1xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm2xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm1xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm4xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm2xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm1xKx16_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
 
-void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t MDiv4, MHas2, MHas1;
     MDiv4 = M>>2;
     MHas2 = (M>>1)&1;
     MHas1 = M&1;
-
+    //printf("----%s %d--- %d %d %d %d \n", __func__, __LINE__, M, MDiv4, MHas2, MHas1);
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
-        sgemm4xKx24_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm4xKx24_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 4*K;
         pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -58,7 +58,7 @@ void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
 
     if (MHas2)
     {
-        sgemm2xKx24_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm2xKx24_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -68,19 +68,19 @@ void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     }
 
     if (MHas1)
-        sgemm1xKx24_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm1xKx24_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
 }
 
-void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t MDiv4, MHas2, MHas1;
     MDiv4 = M>>2;
     MHas2 = (M>>1)&1;
     MHas1 = M&1;
-
+    //printf("----%s %d--- %d %d %d %d \n", __func__, __LINE__, M, MDiv4, MHas2, MHas1);
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
-        sgemm4xKx16_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm4xKx16_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 4*K;
         pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -91,7 +91,7 @@ void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
 
     if (MHas2)
     {
-        sgemm2xKx16_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm2xKx16_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -101,26 +101,26 @@ void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     }
 
     if (MHas1)
-        sgemm1xKx16_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm1xKx16_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
 }
 
 #else
 
 /* fp32 unit sgemm block is, A:4x4  B:4x12 C:4x12 */
-extern "C" void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
-extern "C" void sgemm2xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
-extern "C" void sgemm1xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm2xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm1xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
 
-void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t MDiv4, MHas2, MHas1;
     MDiv4 = M>>2;
     MHas2 = (M>>1)&1;
     MHas1 = M&1;
-
+    //printf("----%s %d--- %d %d %d %d \n", __func__, __LINE__, M, MDiv4, MHas2, MHas1);
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
-        sgemm4xKx12_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm4xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 4*K;
         pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -131,7 +131,7 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
 
     if (MHas2)
     {
-        sgemm2xKx12_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm2xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -141,14 +141,14 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     }
 
     if (MHas1)
-        sgemm1xKx12_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm1xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
 }
 
 #endif
 
-extern "C" void sgemm4xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm4xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
 
-static void sgemm2xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+static void sgemm2xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
     uint32_t KHas2 = (K>>1)&1;
@@ -246,46 +246,63 @@ static void sgemm2xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcC32x4x2_1.val[1] = vaddq_f32(vsrcC32x4x2_1.val[1], vbasis32x4_1);
     }
 
-    if (bRelu)
+    switch (reluType)
     {
-        uint32x4_t vmask;
-        float32x4_t vzero;
-        vmask = veorq_u32(vmask, vmask);
-        vzero = vreinterpretq_f32_u32(vmask);
+    case TINY_SGEMM_RELU_TYPE_RELU:
+    {
+        float32x4_t vzerof   = vreinterpretq_f32_u32(vzero);
 
-        vmask                = vcleq_f32(vsrcC32x4x2_0.val[0], vzero);
-        vsrcC32x4x2_0.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x2_0.val[0]);
-        vmask                = vcleq_f32(vsrcC32x4x2_0.val[1], vzero);
-        vsrcC32x4x2_0.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x2_0.val[1]);
+        vsrcC32x4x2_0.val[0] = vmaxq_f32(vsrcC32x4x2_0.val[0], vzerof);
+        vsrcC32x4x2_0.val[1] = vmaxq_f32(vsrcC32x4x2_0.val[1], vzerof);
 
-        vmask                = vcleq_f32(vsrcC32x4x2_1.val[0], vzero);
-        vsrcC32x4x2_1.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x2_1.val[0]);
-        vmask                = vcleq_f32(vsrcC32x4x2_1.val[1], vzero);
-        vsrcC32x4x2_1.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x2_1.val[1]);
+        vsrcC32x4x2_1.val[0] = vmaxq_f32(vsrcC32x4x2_1.val[0], vzerof);
+        vsrcC32x4x2_1.val[1] = vmaxq_f32(vsrcC32x4x2_1.val[1], vzerof);
+        break;
     }
-    else if (pPrelu)
+    case TINY_SGEMM_RELU_TYPE_RELU6:
+    {
+        float32x4_t vzerof   = vreinterpretq_f32_u32(vzero);
+        float32x4_t vsix     = vmovq_n_f32(6.0f);
+
+        vsrcC32x4x2_0.val[0] = vmaxq_f32(vsrcC32x4x2_0.val[0], vzerof);
+        vsrcC32x4x2_0.val[0] = vminq_f32(vsrcC32x4x2_0.val[0], vsix);
+        vsrcC32x4x2_0.val[1] = vmaxq_f32(vsrcC32x4x2_0.val[1], vzerof);
+        vsrcC32x4x2_0.val[1] = vminq_f32(vsrcC32x4x2_0.val[1], vsix);
+
+        vsrcC32x4x2_1.val[0] = vmaxq_f32(vsrcC32x4x2_1.val[0], vzerof);
+        vsrcC32x4x2_1.val[0] = vminq_f32(vsrcC32x4x2_1.val[0], vsix);
+        vsrcC32x4x2_1.val[1] = vmaxq_f32(vsrcC32x4x2_1.val[1], vzerof);
+        vsrcC32x4x2_1.val[1] = vminq_f32(vsrcC32x4x2_1.val[1], vsix);
+        break;
+    }
+    case TINY_SGEMM_RELU_TYPE_NORELU:
+    default:
+        break;
+    }
+
+    if (pPrelu)
     {
         uint32x4_t vmask;
         float32x2_t vscale32x2;
-        float32x4_t vmul, vzero;
-        vmask = veorq_u32(vmask, vmask);
-        vzero = vreinterpretq_f32_u32(vmask);
+        float32x4_t vmul, vzerof;
+
+        vzerof = vreinterpretq_f32_u32(vzero);
         if (bSharedPrelu) /* all channel use same prelu */
             vscale32x2 = vdup_n_f32(pPrelu[0]);
         else
             vscale32x2 = vld1_f32(pPrelu);
 
-        vmask                = vcleq_f32(vsrcC32x4x2_0.val[0], vzero);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[0], vzerof);
         vmul                 = vmulq_n_f32(vsrcC32x4x2_0.val[0], vscale32x2[0]);
         vsrcC32x4x2_0.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x2_0.val[0]);
-        vmask                = vcleq_f32(vsrcC32x4x2_0.val[1], vzero);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[1], vzerof);
         vmul                 = vmulq_n_f32(vsrcC32x4x2_0.val[1], vscale32x2[0]);
         vsrcC32x4x2_0.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x2_0.val[1]);
 
-        vmask                = vcleq_f32(vsrcC32x4x2_1.val[0], vzero);
+        vmask                = vcleq_f32(vsrcC32x4x2_1.val[0], vzerof);
         vmul                 = vmulq_n_f32(vsrcC32x4x2_1.val[0], vscale32x2[1]);
         vsrcC32x4x2_1.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x2_1.val[0]);
-        vmask                = vcleq_f32(vsrcC32x4x2_1.val[1], vzero);
+        vmask                = vcleq_f32(vsrcC32x4x2_1.val[1], vzerof);
         vmul                 = vmulq_n_f32(vsrcC32x4x2_1.val[1], vscale32x2[1]);
         vsrcC32x4x2_1.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x2_1.val[1]);
     }
@@ -294,7 +311,7 @@ static void sgemm2xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     vst1q_f32_x2(pC+N,   vsrcC32x4x2_1);
 }
 
-static void sgemm1xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+static void sgemm1xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
     uint32_t KHas2 = (K>>1)&1;
@@ -373,29 +390,42 @@ static void sgemm1xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcC32x4x2_0.val[1] = vaddq_f32(vsrcC32x4x2_0.val[1], vbasis32x4_0);
     }
 
-    if (bRelu)
+    switch (reluType)
     {
-        uint32x4_t vmask;
-        float32x4_t vzero;
-        vmask = veorq_u32(vmask, vmask);
-        vzero = vreinterpretq_f32_u32(vmask);
+    case TINY_SGEMM_RELU_TYPE_RELU:
+    {
+        float32x4_t vzerof   = vreinterpretq_f32_u32(vzero);
 
-        vmask                = vcleq_f32(vsrcC32x4x2_0.val[0], vzero);
-        vsrcC32x4x2_0.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x2_0.val[0]);
-        vmask                = vcleq_f32(vsrcC32x4x2_0.val[1], vzero);
-        vsrcC32x4x2_0.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x2_0.val[1]);
+        vsrcC32x4x2_0.val[0] = vmaxq_f32(vsrcC32x4x2_0.val[0], vzerof);
+        vsrcC32x4x2_0.val[1] = vmaxq_f32(vsrcC32x4x2_0.val[1], vzerof);
+        break;
     }
-    else if (pPrelu)
+    case TINY_SGEMM_RELU_TYPE_RELU6:
+    {
+        float32x4_t vzerof   = vreinterpretq_f32_u32(vzero);
+        float32x4_t vsix     = vmovq_n_f32(6.0f);
+
+        vsrcC32x4x2_0.val[0] = vmaxq_f32(vsrcC32x4x2_0.val[0], vzerof);
+        vsrcC32x4x2_0.val[0] = vminq_f32(vsrcC32x4x2_0.val[0], vsix);
+        vsrcC32x4x2_0.val[1] = vmaxq_f32(vsrcC32x4x2_0.val[1], vzerof);
+        vsrcC32x4x2_0.val[1] = vminq_f32(vsrcC32x4x2_0.val[1], vsix);
+        break;
+    }
+    case TINY_SGEMM_RELU_TYPE_NORELU:
+    default:
+        break;
+    }
+
+    if (pPrelu)
     {
         uint32x4_t vmask;
-        float32x4_t vmul, vzero;
-        vmask = veorq_u32(vmask, vmask);
-        vzero = vreinterpretq_f32_u32(vmask);
+        float32x4_t vmul, vzerof;
 
-        vmask                = vcleq_f32(vsrcC32x4x2_0.val[0], vzero);
+        vzerof               = vreinterpretq_f32_u32(vzero);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[0], vzerof);
         vmul                 = vmulq_n_f32(vsrcC32x4x2_0.val[0], pPrelu[0]);
         vsrcC32x4x2_0.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x2_0.val[0]);
-        vmask                = vcleq_f32(vsrcC32x4x2_0.val[1], vzero);
+        vmask                = vcleq_f32(vsrcC32x4x2_0.val[1], vzerof);
         vmul                 = vmulq_n_f32(vsrcC32x4x2_0.val[1], pPrelu[0]);
         vsrcC32x4x2_0.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x2_0.val[1]);
     }
@@ -403,7 +433,7 @@ static void sgemm1xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     vst1q_f32_x2(pC,     vsrcC32x4x2_0);
 }
 
-void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t MDiv4, MHas2, MHas1;
     MDiv4 = M>>2;
@@ -412,7 +442,7 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
-        sgemm4xKx8_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm4xKx8_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 4*K;
         pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -423,7 +453,7 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     if (MHas2)
     {
-        sgemm2xKx8_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm2xKx8_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -433,12 +463,12 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     }
 
     if (MHas1)
-        sgemm1xKx8_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm1xKx8_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
 }
 
-extern "C" void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
 
-static void sgemm2xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+static void sgemm2xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
     uint32_t KHas2 = (K>>1)&1;
@@ -513,36 +543,49 @@ static void sgemm2xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcC32x4x2.val[1] = vaddq_f32(vsrcC32x4x2.val[1], vbasis32x4_1);
     }
 
-    if (bRelu)
+    switch (reluType)
     {
-        uint32x4_t vmask;
-        float32x4_t vzero;
-        vmask = veorq_u32(vmask, vmask);
-        vzero = vreinterpretq_f32_u32(vmask);
+    case TINY_SGEMM_RELU_TYPE_RELU:
+    {
+        float32x4_t vzerof = vreinterpretq_f32_u32(vzero);
 
-        vmask              = vcleq_f32(vsrcC32x4x2.val[0], vzero);
-        vsrcC32x4x2.val[0] = vbslq_f32(vmask, vzero, vsrcC32x4x2.val[0]);
-
-        vmask              = vcleq_f32(vsrcC32x4x2.val[1], vzero);
-        vsrcC32x4x2.val[1] = vbslq_f32(vmask, vzero, vsrcC32x4x2.val[1]);
+        vsrcC32x4x2.val[0] = vmaxq_f32(vsrcC32x4x2.val[0], vzerof);
+        vsrcC32x4x2.val[1] = vmaxq_f32(vsrcC32x4x2.val[1], vzerof);
+        break;
     }
-    else if (pPrelu)
+    case TINY_SGEMM_RELU_TYPE_RELU6:
+    {
+        float32x4_t vzerof = vreinterpretq_f32_u32(vzero);
+        float32x4_t vsix   = vmovq_n_f32(6.0f);
+
+        vsrcC32x4x2.val[0] = vmaxq_f32(vsrcC32x4x2.val[0], vzerof);
+        vsrcC32x4x2.val[0] = vminq_f32(vsrcC32x4x2.val[0], vsix);
+        vsrcC32x4x2.val[1] = vmaxq_f32(vsrcC32x4x2.val[1], vzerof);
+        vsrcC32x4x2.val[1] = vminq_f32(vsrcC32x4x2.val[1], vsix);
+        break;
+    }
+    case TINY_SGEMM_RELU_TYPE_NORELU:
+    default:
+        break;
+    }
+
+    if (pPrelu)
     {
         uint32x4_t vmask;
-        float32x4_t vmul, vzero;
+        float32x4_t vmul, vzerof;
         float32x2_t vscale32x2;
-        vmask = veorq_u32(vmask, vmask);
-        vzero = vreinterpretq_f32_u32(vmask);
+
+        vzerof = vreinterpretq_f32_u32(vzero);
         if (bSharedPrelu) /* all channel use same prelu */
             vscale32x2 = vdup_n_f32(pPrelu[0]);
         else
             vscale32x2 = vld1_f32(pPrelu);
 
-        vmask              = vcleq_f32(vsrcC32x4x2.val[0], vzero);
+        vmask              = vcleq_f32(vsrcC32x4x2.val[0], vzerof);
         vmul               = vmulq_n_f32(vsrcC32x4x2.val[0], vscale32x2[0]);
         vsrcC32x4x2.val[0] = vbslq_f32(vmask, vmul, vsrcC32x4x2.val[0]);
 
-        vmask              = vcleq_f32(vsrcC32x4x2.val[1], vzero);
+        vmask              = vcleq_f32(vsrcC32x4x2.val[1], vzerof);
         vmul               = vmulq_n_f32(vsrcC32x4x2.val[1], vscale32x2[1]);
         vsrcC32x4x2.val[1] = vbslq_f32(vmask, vmul, vsrcC32x4x2.val[1]);
     }
@@ -551,7 +594,7 @@ static void sgemm2xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     vst1q_f32(pC+N,   vsrcC32x4x2.val[1]);
 }
 
-static void sgemm1xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+static void sgemm1xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
     uint32_t KHas2 = (K>>1)&1;
@@ -610,24 +653,36 @@ static void sgemm1xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcC32x4 = vaddq_f32(vsrcC32x4, vbasis32x4);
     }
 
-    if (bRelu)
+    switch (reluType)
     {
-        uint32x4_t vmask;
-        float32x4_t vzero;
-        vmask = veorq_u32(vmask, vmask);
-        vzero = vreinterpretq_f32_u32(vmask);
+    case TINY_SGEMM_RELU_TYPE_RELU:
+    {
+        float32x4_t vzerof = vreinterpretq_f32_u32(vzero);
 
-        vmask     = vcleq_f32(vsrcC32x4, vzero);
-        vsrcC32x4 = vbslq_f32(vmask, vzero, vsrcC32x4);
+        vsrcC32x4 = vmaxq_f32(vsrcC32x4, vzerof);
+        break;
     }
-    else if (pPrelu)
+    case TINY_SGEMM_RELU_TYPE_RELU6:
+    {
+        float32x4_t vzerof = vreinterpretq_f32_u32(vzero);
+        float32x4_t vsix = vmovq_n_f32(6.0f);
+
+        vsrcC32x4 = vmaxq_f32(vsrcC32x4, vzerof);
+        vsrcC32x4 = vminq_f32(vsrcC32x4, vsix);
+        break;
+    }
+    case TINY_SGEMM_RELU_TYPE_NORELU:
+    default:
+        break;
+    }
+
+    if (pPrelu)
     {
         uint32x4_t vmask;
-        float32x4_t vmul, vzero;
-        vmask = veorq_u32(vmask, vmask);
-        vzero = vreinterpretq_f32_u32(vmask);
+        float32x4_t vmul, vzerof;
 
-        vmask     = vcleq_f32(vsrcC32x4, vzero);
+        vzerof    = vreinterpretq_f32_u32(vzero);
+        vmask     = vcleq_f32(vsrcC32x4, vzerof);
         vmul      = vmulq_n_f32(vsrcC32x4, pPrelu[0]);
         vsrcC32x4 = vbslq_f32(vmask, vmul, vsrcC32x4);
     }
@@ -635,7 +690,7 @@ static void sgemm1xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     vst1q_f32(pC,     vsrcC32x4);
 }
 
-void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t MDiv4, MHas2, MHas1;
     MDiv4 = M>>2;
@@ -644,7 +699,7 @@ void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
-        sgemm4xKx4_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm4xKx4_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 4*K;
         pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -655,7 +710,7 @@ void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     if (MHas2)
     {
-        sgemm2xKx4_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm2xKx4_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -665,11 +720,11 @@ void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     }
 
     if (MHas1)
-        sgemm1xKx4_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm1xKx4_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
 }
 
 /* fp32 unit sgemm block is, A:4x4  B:4x2 C:4x2 */
-static void sgemm4xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+static void sgemm4xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
     uint32_t KHas2 = (K>>1)&1;
@@ -767,50 +822,63 @@ static void sgemm4xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcC32x2x4.val[3] = vadd_f32(vsrcC32x2x4.val[3], vbasis32x2_3);
     }
 
-    if (bRelu)
+    switch (reluType)
     {
-        uint32x2_t vmask;
-        float32x2_t vzero;
-        vmask = veor_u32(vmask, vmask);
-        vzero = vreinterpret_f32_u32(vmask);
+    case TINY_SGEMM_RELU_TYPE_RELU:
+    {
+        float32x2_t vzerof = vreinterpret_f32_u32(vzero);
 
-        vmask              = vcle_f32(vsrcC32x2x4.val[0], vzero);
-        vsrcC32x2x4.val[0] = vbsl_f32(vmask, vzero, vsrcC32x2x4.val[0]);
-
-        vmask              = vcle_f32(vsrcC32x2x4.val[1], vzero);
-        vsrcC32x2x4.val[1] = vbsl_f32(vmask, vzero, vsrcC32x2x4.val[1]);
-
-        vmask              = vcle_f32(vsrcC32x2x4.val[2], vzero);
-        vsrcC32x2x4.val[2] = vbsl_f32(vmask, vzero, vsrcC32x2x4.val[2]);
-
-        vmask              = vcle_f32(vsrcC32x2x4.val[3], vzero);
-        vsrcC32x2x4.val[3] = vbsl_f32(vmask, vzero, vsrcC32x2x4.val[3]);
+        vsrcC32x2x4.val[0] = vmax_f32(vsrcC32x2x4.val[0], vzerof);
+        vsrcC32x2x4.val[1] = vmax_f32(vsrcC32x2x4.val[1], vzerof);
+        vsrcC32x2x4.val[2] = vmax_f32(vsrcC32x2x4.val[2], vzerof);
+        vsrcC32x2x4.val[3] = vmax_f32(vsrcC32x2x4.val[3], vzerof);
+        break;
     }
-    else if (pPrelu)
+    case TINY_SGEMM_RELU_TYPE_RELU6:
+    {
+        float32x2_t vzerof = vreinterpret_f32_u32(vzero);
+        float32x2_t vsix   = vmov_n_f32(6.0f);
+
+        vsrcC32x2x4.val[0] = vmax_f32(vsrcC32x2x4.val[0], vzerof);
+        vsrcC32x2x4.val[0] = vmin_f32(vsrcC32x2x4.val[0], vsix);
+        vsrcC32x2x4.val[1] = vmax_f32(vsrcC32x2x4.val[1], vzerof);
+        vsrcC32x2x4.val[1] = vmin_f32(vsrcC32x2x4.val[1], vsix);
+        vsrcC32x2x4.val[2] = vmax_f32(vsrcC32x2x4.val[2], vzerof);
+        vsrcC32x2x4.val[2] = vmin_f32(vsrcC32x2x4.val[2], vsix);
+        vsrcC32x2x4.val[3] = vmax_f32(vsrcC32x2x4.val[3], vzerof);
+        vsrcC32x2x4.val[3] = vmin_f32(vsrcC32x2x4.val[3], vsix);
+        break;
+    }
+    case TINY_SGEMM_RELU_TYPE_NORELU:
+    default:
+        break;
+    }
+
+    if (pPrelu)
     {
         uint32x2_t vmask;
         float32x4_t vscale32x4;
-        float32x2_t vmul, vzero;
-        vmask = veor_u32(vmask, vmask);
-        vzero = vreinterpret_f32_u32(vmask);
+        float32x2_t vmul, vzerof;
+
+        vzerof = vreinterpret_f32_u32(vzero);
         if (bSharedPrelu) /* all channel use same prelu */
             vscale32x4 = vdupq_n_f32(pPrelu[0]);
         else
             vscale32x4 = vld1q_f32(pPrelu);
 
-        vmask              = vcle_f32(vsrcC32x2x4.val[0], vzero);
+        vmask              = vcle_f32(vsrcC32x2x4.val[0], vzerof);
         vmul               = vmul_n_f32(vsrcC32x2x4.val[0], vscale32x4[0]);
         vsrcC32x2x4.val[0] = vbsl_f32(vmask, vmul, vsrcC32x2x4.val[0]);
 
-        vmask              = vcle_f32(vsrcC32x2x4.val[1], vzero);
+        vmask              = vcle_f32(vsrcC32x2x4.val[1], vzerof);
         vmul               = vmul_n_f32(vsrcC32x2x4.val[1], vscale32x4[1]);
         vsrcC32x2x4.val[1] = vbsl_f32(vmask, vmul, vsrcC32x2x4.val[1]);
 
-        vmask              = vcle_f32(vsrcC32x2x4.val[2], vzero);
+        vmask              = vcle_f32(vsrcC32x2x4.val[2], vzerof);
         vmul               = vmul_n_f32(vsrcC32x2x4.val[2], vscale32x4[2]);
         vsrcC32x2x4.val[2] = vbsl_f32(vmask, vmul, vsrcC32x2x4.val[2]);
 
-        vmask              = vcle_f32(vsrcC32x2x4.val[3], vzero);
+        vmask              = vcle_f32(vsrcC32x2x4.val[3], vzerof);
         vmul               = vmul_n_f32(vsrcC32x2x4.val[3], vscale32x4[3]);
         vsrcC32x2x4.val[3] = vbsl_f32(vmask, vmul, vsrcC32x2x4.val[3]);
     }
@@ -821,7 +889,7 @@ static void sgemm4xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     vst1_f32(pC+3*N, vsrcC32x2x4.val[3]);
 }
 
-static void sgemm2xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+static void sgemm2xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
     uint32_t KHas2 = (K>>1)&1;
@@ -896,35 +964,47 @@ static void sgemm2xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcC32x2x2.val[1] = vadd_f32(vsrcC32x2x2.val[1], vbasis32x2_1);
     }
 
-    if (bRelu)
+    switch (reluType)
     {
-        uint32x2_t vmask;
-        float32x2_t vzero;
-        vmask = veor_u32(vmask, vmask);
-        vzero = vreinterpret_f32_u32(vmask);
+    case TINY_SGEMM_RELU_TYPE_RELU:
+    {
+        float32x2_t vzerof = vreinterpret_f32_u32(vzero);
 
-        vmask              = vcle_f32(vsrcC32x2x2.val[0], vzero);
-        vsrcC32x2x2.val[0] = vbsl_f32(vmask, vzero, vsrcC32x2x2.val[0]);
-
-        vmask              = vcle_f32(vsrcC32x2x2.val[1], vzero);
-        vsrcC32x2x2.val[1] = vbsl_f32(vmask, vzero, vsrcC32x2x2.val[1]);
+        vsrcC32x2x2.val[0] = vmax_f32(vsrcC32x2x2.val[0], vzerof);
+        vsrcC32x2x2.val[1] = vmax_f32(vsrcC32x2x2.val[1], vzerof);
+        break;
     }
-    else if (pPrelu)
+    case TINY_SGEMM_RELU_TYPE_RELU6:
+    {
+        float32x2_t vzerof = vreinterpret_f32_u32(vzero);
+        float32x2_t vsix   = vmov_n_f32(6.0f);
+
+        vsrcC32x2x2.val[0] = vmax_f32(vsrcC32x2x2.val[0], vzerof);
+        vsrcC32x2x2.val[0] = vmin_f32(vsrcC32x2x2.val[0], vsix);
+        vsrcC32x2x2.val[1] = vmax_f32(vsrcC32x2x2.val[1], vzerof);
+        vsrcC32x2x2.val[1] = vmin_f32(vsrcC32x2x2.val[1], vsix);
+        break;
+    }
+    case TINY_SGEMM_RELU_TYPE_NORELU:
+    default:
+        break;
+    }
+
+    if (pPrelu)
     {
         uint32x2_t vmask;
-        float32x2_t vscale32x2, vmul, vzero;
-        vmask = veor_u32(vmask, vmask);
-        vzero = vreinterpret_f32_u32(vmask);
+        float32x2_t vscale32x2, vmul, vzerof;
+        vzerof = vreinterpret_f32_u32(vzero);
         if (bSharedPrelu) /* all channel use same prelu */
             vscale32x2 = vdup_n_f32(pPrelu[0]);
         else
             vscale32x2 = vld1_f32(pPrelu);
 
-        vmask              = vcle_f32(vsrcC32x2x2.val[0], vzero);
+        vmask              = vcle_f32(vsrcC32x2x2.val[0], vzerof);
         vmul               = vmul_n_f32(vsrcC32x2x2.val[0], vscale32x2[0]);
         vsrcC32x2x2.val[0] = vbsl_f32(vmask, vmul, vsrcC32x2x2.val[0]);
 
-        vmask              = vcle_f32(vsrcC32x2x2.val[1], vzero);
+        vmask              = vcle_f32(vsrcC32x2x2.val[1], vzerof);
         vmul               = vmul_n_f32(vsrcC32x2x2.val[1], vscale32x2[1]);
         vsrcC32x2x2.val[1] = vbsl_f32(vmask, vmul, vsrcC32x2x2.val[1]);
     }
@@ -933,7 +1013,7 @@ static void sgemm2xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     vst1_f32(pC+N,   vsrcC32x2x2.val[1]);
 }
 
-static void sgemm1xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+static void sgemm1xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
     uint32_t KHas2 = (K>>1)&1;
@@ -995,24 +1075,36 @@ static void sgemm1xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcC32x2 = vadd_f32(vsrcC32x2, vbasis32x2);
     }
 
-    if (bRelu)
+    switch (reluType)
     {
-        uint32x2_t vmask;
-        float32x2_t vzero;
-        vmask = veor_u32(vmask, vmask);
-        vzero = vreinterpret_f32_u32(vmask);
+    case TINY_SGEMM_RELU_TYPE_RELU:
+    {
+        float32x2_t vzerof = vreinterpret_f32_u32(vzero);
 
-        vmask     = vcle_f32(vsrcC32x2, vzero);
-        vsrcC32x2 = vbsl_f32(vmask, vzero, vsrcC32x2);
+        vsrcC32x2 = vmax_f32(vsrcC32x2, vzerof);
+        break;
     }
-    else if (pPrelu)
+    case TINY_SGEMM_RELU_TYPE_RELU6:
+    {
+        float32x2_t vzerof = vreinterpret_f32_u32(vzero);
+        float32x2_t vsix = vmov_n_f32(6.0f);
+
+        vsrcC32x2 = vmax_f32(vsrcC32x2, vzerof);
+        vsrcC32x2 = vmin_f32(vsrcC32x2, vsix);
+        break;
+    }
+    case TINY_SGEMM_RELU_TYPE_NORELU:
+    default:
+        break;
+    }
+
+    if (pPrelu)
     {
         uint32x2_t vmask;
-        float32x2_t vmul, vzero;
-        vmask = veor_u32(vmask, vmask);
-        vzero = vreinterpret_f32_u32(vmask);
+        float32x2_t vmul, vzerof;
+        vzerof = vreinterpret_f32_u32(vzero);
 
-        vmask     = vcle_f32(vsrcC32x2, vzero);
+        vmask     = vcle_f32(vsrcC32x2, vzerof);
         vmul      = vmul_n_f32(vsrcC32x2, pPrelu[0]);
         vsrcC32x2 = vbsl_f32(vmask, vmul, vsrcC32x2);
     }
@@ -1020,7 +1112,7 @@ static void sgemm1xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     vst1_f32(pC,     vsrcC32x2);
 }
 
-void sgemmMxKx2_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+void sgemmMxKx2_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t MDiv4, MHas2, MHas1;
     MDiv4 = M>>2;
@@ -1029,7 +1121,7 @@ void sgemmMxKx2_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
-        sgemm4xKx2_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm4xKx2_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 4*K;
         pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -1040,7 +1132,7 @@ void sgemmMxKx2_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     if (MHas2)
     {
-        sgemm2xKx2_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm2xKx2_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -1050,11 +1142,11 @@ void sgemmMxKx2_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     }
 
     if (MHas1)
-        sgemm1xKx2_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm1xKx2_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
 }
 
 /* fp32 unit sgemm block is, A:4x4  B:4x1 C:4x1 */
-static void sgemm4xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+static void sgemm4xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
     uint32_t KHas2 = (K>>1)&1;
@@ -1117,26 +1209,53 @@ static void sgemm4xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcC32x4 = vaddq_f32(vsrcC32x4, vbasis32x4);
     }
 
-    if (bRelu)
+    switch (reluType)
     {
-        uint32x4_t vmask;
-        float32x4_t vzero;
-        vmask = veorq_u32(vmask, vmask);
-        vzero = vreinterpretq_f32_u32(vmask);
+    case TINY_SGEMM_RELU_TYPE_RELU:
+    {
+        float32x4_t vzerof = vreinterpretq_f32_u32(vzero);
 
-        vmask     = vcleq_f32(vsrcC32x4, vzero);
-        vsrcC32x4 = vbslq_f32(vmask, vzero, vsrcC32x4);
+        vsrcC32x4 = vmaxq_f32(vsrcC32x4, vzerof);
+        break;
     }
-    else if (pPrelu)
+    case TINY_SGEMM_RELU_TYPE_RELU6:
     {
-        if (vsrcC32x4[0] < 0)
-            vsrcC32x4[0] *= pPrelu[0];
-        if (vsrcC32x4[1] < 0)
-            vsrcC32x4[1] *= pPrelu[1];
-        if (vsrcC32x4[2] < 0)
-            vsrcC32x4[2] *= pPrelu[2];
-        if (vsrcC32x4[3] < 0)
-            vsrcC32x4[3] *= pPrelu[3];
+        float32x4_t vzerof = vreinterpretq_f32_u32(vzero);
+        float32x4_t vsix = vmovq_n_f32(6.0f);
+
+        vsrcC32x4 = vmaxq_f32(vsrcC32x4, vzerof);
+        vsrcC32x4 = vminq_f32(vsrcC32x4, vsix);
+        break;
+    }
+    case TINY_SGEMM_RELU_TYPE_NORELU:
+    default:
+        break;
+    }
+
+    if (pPrelu)
+    {
+        if (bSharedPrelu)
+        {
+            if (vsrcC32x4[0] < 0)
+                vsrcC32x4[0] *= pPrelu[0];
+            if (vsrcC32x4[1] < 0)
+                vsrcC32x4[1] *= pPrelu[0];
+            if (vsrcC32x4[2] < 0)
+                vsrcC32x4[2] *= pPrelu[0];
+            if (vsrcC32x4[3] < 0)
+                vsrcC32x4[3] *= pPrelu[0];
+        }
+        else
+        {
+            if (vsrcC32x4[0] < 0)
+                vsrcC32x4[0] *= pPrelu[0];
+            if (vsrcC32x4[1] < 0)
+                vsrcC32x4[1] *= pPrelu[1];
+            if (vsrcC32x4[2] < 0)
+                vsrcC32x4[2] *= pPrelu[2];
+            if (vsrcC32x4[3] < 0)
+                vsrcC32x4[3] *= pPrelu[3];
+        }
     }
 
     *(pC + 0*N) = vsrcC32x4[0];
@@ -1145,7 +1264,7 @@ static void sgemm4xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     *(pC + 3*N) = vsrcC32x4[3];
 }
 
-static void sgemm2xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+static void sgemm2xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
     uint32_t KHas2 = (K>>1)&1;
@@ -1206,29 +1325,52 @@ static void sgemm2xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcC32x2 = vadd_f32(vsrcC32x2, vbasis32x2);
     }
 
-    if (bRelu)
+    switch (reluType)
     {
-        uint32x2_t vmask;
-        float32x2_t vzero;
-        vmask = veor_u32(vmask, vmask);
-        vzero = vreinterpret_f32_u32(vmask);
+    case TINY_SGEMM_RELU_TYPE_RELU:
+    {
+        float32x2_t vzerof = vreinterpret_f32_u32(vzero);
 
-        vmask     = vcle_f32(vsrcC32x2, vzero);
-        vsrcC32x2 = vbsl_f32(vmask, vzero, vsrcC32x2);
+        vsrcC32x2 = vmax_f32(vsrcC32x2, vzerof);
+        break;
     }
-    else if (pPrelu)
+    case TINY_SGEMM_RELU_TYPE_RELU6:
     {
-        if (vsrcC32x2[0] < 0)
-            vsrcC32x2[0] *= pPrelu[0];
-        if (vsrcC32x2[1] < 0)
-            vsrcC32x2[1] *= pPrelu[1];
+        float32x2_t vzerof = vreinterpret_f32_u32(vzero);
+        float32x2_t vsix = vmov_n_f32(6.0f);
+
+        vsrcC32x2 = vmax_f32(vsrcC32x2, vzerof);
+        vsrcC32x2 = vmin_f32(vsrcC32x2, vsix);
+        break;
+    }
+    case TINY_SGEMM_RELU_TYPE_NORELU:
+    default:
+        break;
+    }
+
+    if (pPrelu)
+    {
+        if (bSharedPrelu)
+        {
+            if (vsrcC32x2[0] < 0)
+                vsrcC32x2[0] *= pPrelu[0];
+            if (vsrcC32x2[1] < 0)
+                vsrcC32x2[1] *= pPrelu[0];
+        }
+        else
+        {
+            if (vsrcC32x2[0] < 0)
+                vsrcC32x2[0] *= pPrelu[0];
+            if (vsrcC32x2[1] < 0)
+                vsrcC32x2[1] *= pPrelu[1];
+        }
     }
 
     *(pC + 0*N) = vsrcC32x2[0];
     *(pC + 1*N) = vsrcC32x2[1];
 }
 
-static void sgemm1xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+static void sgemm1xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t KDiv4 = K>>2;
     uint32_t KHas2 = (K>>1)&1;
@@ -1273,10 +1415,17 @@ static void sgemm1xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     if (pBasis)
         *pC += pBasis[0];
 
-    if (bRelu)
+    if (TINY_SGEMM_RELU_TYPE_RELU == reluType)
     {
         if (*pC < 0)
             *pC = 0;
+    }
+    else if (TINY_SGEMM_RELU_TYPE_RELU6 == reluType)
+    {
+        if (*pC < 0.0)
+            *pC = 0.0;
+        if (*pC > 6.0)
+            *pC = 6.0;
     }
     else if (pPrelu)
     {
@@ -1285,7 +1434,7 @@ static void sgemm1xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     }
 }
 
-void sgemmMxKx1_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t bRelu, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
+void sgemmMxKx1_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
     uint32_t MDiv4, MHas2, MHas1;
     MDiv4 = M>>2;
@@ -1294,7 +1443,7 @@ void sgemmMxKx1_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
-        sgemm4xKx1_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm4xKx1_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 4*K;
         pC += 4*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -1305,7 +1454,7 @@ void sgemmMxKx1_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     if (MHas2)
     {
-        sgemm2xKx1_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm2xKx1_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
         pA += 2*K;
         pC += 2*N;
         if ((NULL != pPrelu) && (!bSharedPrelu))
@@ -1315,5 +1464,5 @@ void sgemmMxKx1_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     }
 
     if (MHas1)
-        sgemm1xKx1_fp32(pA, pB, pC, K, N, bRelu, pPrelu, bSharedPrelu, pBasis);
+        sgemm1xKx1_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
 }

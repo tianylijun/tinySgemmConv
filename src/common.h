@@ -64,27 +64,18 @@ static inline unsigned alignSize(unsigned sz, int n)
     return (sz + n-1) & -n;
 }
 
-#if 1
-static inline unsigned long timestamp(void)
-{
-    struct timespec tv;
-    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tv);
-    return (unsigned long)tv.tv_sec * 1000000000ul + tv.tv_nsec;
-}
-#else
 static inline unsigned long timestamp(void)
 {
     struct timeval tv;
     gettimeofday(&tv,NULL);
     return (unsigned long)tv.tv_sec * 1000000ul + tv.tv_usec;
 }
-#endif
 
 #define TIME_STASTIC_ENABLE
 #ifdef TIME_STASTIC_ENABLE
 #define TIME_STAMP_BEG(beg) unsigned long beg = timestamp();
 #define TIME_STAMP_END(beg, end, desc) unsigned long end = timestamp(); \
-printf("%-20s cost time %lu us\n", desc, end - beg);
+printf("%-10s cost time %lu us\n", desc, end - beg);
 #else
 #define TIME_STAMP_BEG(beg)
 #define TIME_STAMP_END(beg, end, desc)

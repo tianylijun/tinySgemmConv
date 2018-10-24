@@ -485,10 +485,10 @@ int tinySgemmConvProcess(void *pInstance,
         }
         waitForJobsDone(pCtxInner, &jobsQueue);
     }
-    assert(list_empty(jobsQueue));
     TIME_STAMP_END(begIm2col, endIm2col, "im2col");
+    assert(list_empty(jobsQueue));
 
-    //printf("-blockN: %d %d %d-\n", blockN, N, TINY_SGEMM_UNIT_N);
+    //printf("- blockN: %d leftN: %d N: %d TINY_SGEMM_UNIT_N: %d -\n", blockN, leftN, N, TINY_SGEMM_UNIT_N);
     TIME_STAMP_BEG(begSgemm);
 
     for (i = 0; i < blockN; ++i)

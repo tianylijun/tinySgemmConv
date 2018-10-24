@@ -84,19 +84,19 @@ COPYRIGHT_HOLDER:
 #define VSRC_4S_C1_4     v30.4S
 #define VSRC_4S_C1_5     v31.4S
 
-#define VSRC_16B_C0_0     v20.16B
-#define VSRC_16B_C0_1     v21.16B
-#define VSRC_16B_C0_2     v22.16B
-#define VSRC_16B_C0_3     v23.16B
-#define VSRC_16B_C0_4     v24.16B
-#define VSRC_16B_C0_5     v25.16B
+#define VSRC_16B_C0_0    v20.16B
+#define VSRC_16B_C0_1    v21.16B
+#define VSRC_16B_C0_2    v22.16B
+#define VSRC_16B_C0_3    v23.16B
+#define VSRC_16B_C0_4    v24.16B
+#define VSRC_16B_C0_5    v25.16B
 
-#define VSRC_16B_C1_0     v26.16B
-#define VSRC_16B_C1_1     v27.16B
-#define VSRC_16B_C1_2     v28.16B
-#define VSRC_16B_C1_3     v29.16B
-#define VSRC_16B_C1_4     v30.16B
-#define VSRC_16B_C1_5     v31.16B
+#define VSRC_16B_C1_0    v26.16B
+#define VSRC_16B_C1_1    v27.16B
+#define VSRC_16B_C1_2    v28.16B
+#define VSRC_16B_C1_3    v29.16B
+#define VSRC_16B_C1_4    v30.16B
+#define VSRC_16B_C1_5    v31.16B
 
 /* void sgemm2xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
     .text
@@ -230,7 +230,6 @@ __KHAS2:
 
     /* 0 */
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B], #64
-    subs KDiv4, KDiv4, #1
     ld1 {VSRC_4S_A0}, [A], #16
 
     fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A0_0
@@ -279,7 +278,7 @@ __KHAS1:
     beq __BASIS
 
     /* 0 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B]
+    ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B], #64
     ld1 {VSRC_2S_A0}, [A]
 
     fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_2S_A0_0

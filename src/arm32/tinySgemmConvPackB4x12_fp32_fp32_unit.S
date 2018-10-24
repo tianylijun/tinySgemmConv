@@ -87,31 +87,31 @@ tinySgemmConvPackB4x12_fp32_fp32_unit:
     beq __KHAS2
 
 __LOOP:
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
     subs KDiv4, KDiv4, #1
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B2}, [B:128], N
-    vst1.32 {VSRC_4S_B2}, [PackB:128]!
+    vld1.32 {VSRC_4S_B2}, [B], N
+    vst1.32 {VSRC_4S_B2}, [PackB]!
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B2}, [B:128], N
-    vst1.32 {VSRC_4S_B2}, [PackB:128]!
+    vld1.32 {VSRC_4S_B2}, [B], N
+    vst1.32 {VSRC_4S_B2}, [PackB]!
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B2}, [B:128], N
-    vst1.32 {VSRC_4S_B2}, [PackB:128]!
+    vld1.32 {VSRC_4S_B2}, [B], N
+    vst1.32 {VSRC_4S_B2}, [PackB]!
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B2}, [B:128], N
+    vld1.32 {VSRC_4S_B2}, [B], N
     cmp KDiv4, #0
-    vst1.32 {VSRC_4S_B2}, [PackB:128]!
+    vst1.32 {VSRC_4S_B2}, [PackB]!
 
     bne __LOOP
 
@@ -120,28 +120,28 @@ __KHAS2:
     cmp KHas2, #0
     beq __KHAS1
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B2}, [B:128], N
-    vst1.32 {VSRC_4S_B2}, [PackB:128]!
+    vld1.32 {VSRC_4S_B2}, [B], N
+    vst1.32 {VSRC_4S_B2}, [PackB]!
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B2}, [B:128], N
-    vst1.32 {VSRC_4S_B2}, [PackB:128]!
+    vld1.32 {VSRC_4S_B2}, [B], N
+    vst1.32 {VSRC_4S_B2}, [PackB]!
 
 __KHAS1:
     and KHas1, K, #1
     cmp KHas1, #0
     beq __END
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B2}, [B:128], N
-    vst1.32 {VSRC_4S_B2}, [PackB:128]!
+    vld1.32 {VSRC_4S_B2}, [B], N
+    vst1.32 {VSRC_4S_B2}, [PackB]!
 
 __END:
     pop {r4}

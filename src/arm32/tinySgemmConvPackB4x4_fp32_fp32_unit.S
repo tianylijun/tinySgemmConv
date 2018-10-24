@@ -87,15 +87,15 @@ tinySgemmConvPackB4x4_fp32_fp32_unit:
     beq __KHAS2
 
 __LOOP:
-    vld1.32 {VSRC_4S_B0}, [B:128], N
+    vld1.32 {VSRC_4S_B0}, [B], N
     subs KDiv4, KDiv4, #1
-    vld1.32 {VSRC_4S_B1}, [B:128], N
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+    vld1.32 {VSRC_4S_B1}, [B], N
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B2}, [B:128], N
+    vld1.32 {VSRC_4S_B2}, [B], N
     cmp KDiv4, #0
-    vld1.32 {VSRC_4S_B3}, [B:128], N
-    vst1.32 {VSRC_4S_B2, VSRC_4S_B3}, [PackB:128]!
+    vld1.32 {VSRC_4S_B3}, [B], N
+    vst1.32 {VSRC_4S_B2, VSRC_4S_B3}, [PackB]!
 
     bne __LOOP
 
@@ -104,17 +104,17 @@ __KHAS2:
     cmp KHas2, #0
     beq __KHAS1
 
-    vld1.32 {VSRC_4S_B0}, [B:128], N
-    vld1.32 {VSRC_4S_B1}, [B:128], N
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+    vld1.32 {VSRC_4S_B0}, [B], N
+    vld1.32 {VSRC_4S_B1}, [B], N
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
 __KHAS1:
     and KHas1, K, #1
     cmp KHas1, #0
     beq __END
 
-    vld1.32 {VSRC_4S_B0}, [B:128], N
-    vst1.32 {VSRC_4S_B0}, [PackB:128]
+    vld1.32 {VSRC_4S_B0}, [B], N
+    vst1.32 {VSRC_4S_B0}, [PackB]
 
 __END:
     pop {r4}

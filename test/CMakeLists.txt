@@ -42,6 +42,8 @@ endif()
 
 add_definitions(-std=gnu99)
 
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+
 if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
 
 add_executable(tinySgemmConv_test64 convolution_3x3s1.c main.c)
@@ -51,5 +53,21 @@ else("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7-a")
 
 add_executable(tinySgemmConv_test32 convolution_3x3s1.c main.c)
 target_link_libraries(tinySgemmConv_test32 tinySgemmConv)
+
+endif ()
+
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+
+if("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
+
+add_executable(tinySgemmConv_test64gcc convolution_3x3s1.c main.c)
+target_link_libraries(tinySgemmConv_test64gcc tinySgemmConv)
+
+else("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7-a")
+
+add_executable(tinySgemmConv_test32gcc convolution_3x3s1.c main.c)
+target_link_libraries(tinySgemmConv_test32gcc tinySgemmConv)
+
+endif ()
 
 endif ()

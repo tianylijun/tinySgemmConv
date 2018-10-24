@@ -312,19 +312,21 @@ void * sgemm_thread_process(void *args)
             }
             else
             {
-                uint32_t NHas8, NHas4, NHas2, NHas1, K, N;
+                uint32_t NHas8, NHas4, NHas2, NHas1, K, leftN;
 #ifdef __aarch64__
                 uint32_t NHas16;
 #endif
-                N      = pMsg->JobInfo.sgemmInfo.N;
+                leftN  = pMsg->JobInfo.sgemmInfo.n;
                 K      = pMsg->JobInfo.sgemmInfo.K;
 #ifdef __aarch64__
-                NHas16 = (N>>4)&1;
+                NHas16 = (leftN>>4)&1;
 #endif
-                NHas8  = (N>>3)&1;
-                NHas4  = (N>>2)&1;
-                NHas2  = (N>>1)&1;
-                NHas1  = N&1;
+                NHas8  = (leftN>>3)&1;
+                NHas4  = (leftN>>2)&1;
+                NHas2  = (leftN>>1)&1;
+                NHas1  = leftN&1;
+
+                //printf("----- %s %d [%d]------\n", __func__, __LINE__, pMsg->JobInfo.sgemmInfo.n);
 
                 /* do TINY_SGEMM_UNIT_M * K * leftN */
                 if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType &&
@@ -333,6 +335,7 @@ void * sgemm_thread_process(void *args)
                     /* packB K*leftN */
                     tinySgemmConvPackBLeftN_fp32_fp32((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
 #ifdef __aarch64__
+                    //printf("---- %s %d [%d %d %d %d %d]------\n", __func__, __LINE__, NHas16, NHas8, NHas4, NHas2, NHas1);
                     /* do sgemm */
                     if (NHas16)
                     {
@@ -349,6 +352,8 @@ void * sgemm_thread_process(void *args)
                         pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 16*K);
                         pMsg->JobInfo.sgemmInfo.pC += 16;
                     }
+#else
+                    //printf("---- %s %d [%d %d %d %d]------\n", __func__, __LINE__, NHas8, NHas4, NHas2, NHas1);
 #endif
                     if (NHas8)
                     {

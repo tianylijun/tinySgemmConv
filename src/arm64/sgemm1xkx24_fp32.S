@@ -72,12 +72,12 @@ COPYRIGHT_HOLDER:
 #define VSRC_4S_C0_4     v24.4S
 #define VSRC_4S_C0_5     v25.4S
 
-#define VSRC_16B_C0_0     v20.16B
-#define VSRC_16B_C0_1     v21.16B
-#define VSRC_16B_C0_2     v22.16B
-#define VSRC_16B_C0_3     v23.16B
-#define VSRC_16B_C0_4     v24.16B
-#define VSRC_16B_C0_5     v25.16B
+#define VSRC_16B_C0_0    v20.16B
+#define VSRC_16B_C0_1    v21.16B
+#define VSRC_16B_C0_2    v22.16B
+#define VSRC_16B_C0_3    v23.16B
+#define VSRC_16B_C0_4    v24.16B
+#define VSRC_16B_C0_5    v25.16B
 
 /* void sgemm1xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
     .text
@@ -148,16 +148,16 @@ __LOOP:
     fmla VSRC_4S_C0_5, VSRC_4S_B5, VSRC_4S_A0_2
 
     /* 3 */
-    fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A0_2
+    fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A0_3
     prfm PLDL1KEEP, [B, #32]
-    fmla VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A0_2
-    fmla VSRC_4S_C0_2, VSRC_4S_B2, VSRC_4S_A0_2
+    fmla VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A0_3
+    fmla VSRC_4S_C0_2, VSRC_4S_B2, VSRC_4S_A0_3
     ld1 {VSRC_4S_B4, VSRC_4S_B5}, [B], #32
-    fmla VSRC_4S_C0_3, VSRC_4S_B3, VSRC_4S_A0_2
+    fmla VSRC_4S_C0_3, VSRC_4S_B3, VSRC_4S_A0_3
     prfm PLDL1KEEP, [B, #64]
-    fmla VSRC_4S_C0_4, VSRC_4S_B4, VSRC_4S_A0_2
+    fmla VSRC_4S_C0_4, VSRC_4S_B4, VSRC_4S_A0_3
     cmp KDiv4, #0
-    fmla VSRC_4S_C0_5, VSRC_4S_B5, VSRC_4S_A0_2
+    fmla VSRC_4S_C0_5, VSRC_4S_B5, VSRC_4S_A0_3
 
     bne __LOOP
 
@@ -168,7 +168,6 @@ __KHAS2:
 
     /* 0 */
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B], #64
-    subs KDiv4, KDiv4, #1
     ld1 {VSRC_2S_A0}, [A], #8
 
     fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_2S_A0_0
@@ -199,7 +198,7 @@ __KHAS1:
     beq __BASIS
 
     /* 0 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B]
+    ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B], #64
     ld1 VSRC_1S_A0, [A]
 
     fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_1S_A0_0

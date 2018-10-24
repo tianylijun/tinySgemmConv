@@ -13,7 +13,7 @@ COPYRIGHT_HOLDER:
 #define STACK_SIZE       512
 
 /* RSV [r4~r9,fp] */
-/* void tinySgemmConvPackB4x8_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N) */
+/* void tinySgemmConvPackB4x12_fp32_fp32_unit_align(float *pB, float *pPackB, uint32_t K, uint32_t N) */
 /**************in param**************/
 #define B                r0
 #define PackB            r1
@@ -32,6 +32,7 @@ COPYRIGHT_HOLDER:
 /* RSV Q0~Q7 */
 #define VSRC_4S_B0        q8
 #define VSRC_4S_B1        q9
+#define VSRC_4S_B2        q10
 
 /************ Stack fp Area *********/
 #define  STACK_START  [fp, #-540] // -512-28
@@ -66,38 +67,51 @@ ABI: hard    r0 r1 r2 r3  [fp,#0]  [fp,#4]  [s0]      [s0]      [fp,#8]   [fp,#1
 ABI: softfp  r0 r1 r2 r3  [fp,#0]  [fp,#4]  [fp,#8]   [fp,#12]  [fp,#16]  [fp,#20]
 */
 
-/* void tinySgemmConvPackB4x8_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N) */
+/* void tinySgemmConvPackB4x12_fp32_fp32_unit_align(float *pB, float *pPackB, uint32_t K, uint32_t N) */
     .text
     .align 5
 #ifdef __APPLE__
-    .global _tinySgemmConvPackB4x8_fp32_fp32_unit
-_tinySgemmConvPackB4x8_fp32_fp32_unit:
+    .global _tinySgemmConvPackB4x12_fp32_fp32_unit_align
+_tinySgemmConvPackB4x12_fp32_fp32_unit_align:
 #else
-    .global tinySgemmConvPackB4x8_fp32_fp32_unit
-tinySgemmConvPackB4x8_fp32_fp32_unit:
+    .global tinySgemmConvPackB4x12_fp32_fp32_unit_align
+tinySgemmConvPackB4x12_fp32_fp32_unit_align:
 #endif
     push {r4}
 
     lsl N, N, #2
     lsr KDiv4, K, #2
 
+    subs N, N, #32
     cmp KDiv4, #0
     beq __KHAS2
 
 __LOOP:
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
     subs KDiv4, KDiv4, #1
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vld1.32 {VSRC_4S_B2}, [B:128], N
+    vst1.32 {VSRC_4S_B2}, [PackB:128]!
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
 
+    vld1.32 {VSRC_4S_B2}, [B:128], N
+    vst1.32 {VSRC_4S_B2}, [PackB:128]!
+
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+
+    vld1.32 {VSRC_4S_B2}, [B:128], N
+    vst1.32 {VSRC_4S_B2}, [PackB:128]!
+
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+
+    vld1.32 {VSRC_4S_B2}, [B:128], N
     cmp KDiv4, #0
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vst1.32 {VSRC_4S_B2}, [PackB:128]!
 
     bne __LOOP
 
@@ -106,19 +120,28 @@ __KHAS2:
     cmp KHas2, #0
     beq __KHAS1
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vld1.32 {VSRC_4S_B2}, [B:128], N
+    vst1.32 {VSRC_4S_B2}, [PackB:128]!
+
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+
+    vld1.32 {VSRC_4S_B2}, [B:128], N
+    vst1.32 {VSRC_4S_B2}, [PackB:128]!
 
 __KHAS1:
     and KHas1, K, #1
     cmp KHas1, #0
     beq __END
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]
+    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
+    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB:128]!
+
+    vld1.32 {VSRC_4S_B2}, [B:128], N
+    vst1.32 {VSRC_4S_B2}, [PackB:128]!
 
 __END:
     pop {r4}

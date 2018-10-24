@@ -77,6 +77,52 @@ static void relu6_padchannel(float *input, float *output, uint32_t output_channe
     }
 }
 
+static void prelu_padchannel(float *input, float *output, float *pPrelu, bool bSharedPrelu, uint32_t output_channels, uint32_t channelSize, uint32_t padOutChannel, unsigned num_threads)
+{
+    int size = channelSize;
+    int inSize = size + padOutChannel;
+    float32x4_t vzerof32x4 = vdupq_n_f32(0.f);
+
+    #pragma omp parallel for num_threads(num_threads)
+    for (int q=0; q<output_channels; q++)
+    {
+        const float* inPtr = input + q*inSize;
+        float* outPtr = output + q*size;
+        int i = 0;
+#ifdef __ARM_NEON
+        for (; i < size - 4; i += 4)
+        {
+            float32x4_t vscale32x4;
+            float32x4_t vsrcf32x4 = vld1q_f32(inPtr + i);
+
+            if (bSharedPrelu) /* all channel use same prelu */
+                vscale32x4 = vdupq_n_f32(pPrelu[0]);
+            else
+                vscale32x4 = vdupq_n_f32(pPrelu[q]);
+
+            uint32x4_t vmasku32x4 = vcleq_f32(vsrcf32x4, vzerof32x4);
+            float32x4_t vmul      = vmulq_f32(vsrcf32x4, vscale32x4);
+            vsrcf32x4 = vbslq_f32(vmasku32x4, vmul, vsrcf32x4);
+
+            vst1q_f32(&outPtr[i], vsrcf32x4);
+        }
+#endif
+        for (; i<size; i++)
+        {
+            if (inPtr[i] < 0)
+            {
+                float scale;
+                if (bSharedPrelu)
+                    scale = pPrelu[0];
+                else
+                    scale = pPrelu[q];
+                outPtr[i] = inPtr[i]*scale;
+            }
+            else
+                outPtr[i] = inPtr[i];
+        }
+    }
+}
 
 static void showResult(float *pOut, uint32_t data_size)
 {
@@ -84,21 +130,22 @@ static void showResult(float *pOut, uint32_t data_size)
     {
         if ((0 != i)&& (0 == i % 16))
             printf("\n");
-        printf("%f, ", pOut[i]);
+        printf("%08d, ", (uint32_t)pOut[i]);
     }
     printf("\n----------------------------------------\n");
 }
 
 int main(int argc, char const *argv[])
 {
-    int ret = 0, i = 1, j = 0, outLoopCnt = 1, loopCnt = 10, num_threads = 4;
+    int ret = 0, i = 1, j = 0, outLoopCnt = 1, loopCnt = 5, num_threads = 4;
     uint32_t inChannels = 3, inputW = 300, inputH = 300, kernelW = 3, kernelH = 3, padW = 0, padH = 0;
     uint32_t strideW = 1, strideH = 1, outChannels = 128, dilateW = 1, dilateH = 1, outputW, outputH, M, N, K;
     void *pCtx, *psgemmInstance;
     enum TINY_SGEMM_RELU_TYPE reluType = TINY_SGEMM_RELU_TYPE_NORELU;
-    bool fuse_relu = true, fuse_relu6 = false;
+    bool fuse_relu = false, fuse_relu6 = true, bSharedPrelu = true;
     //uint32_t affinity[MAX_CORE_NUMBER] = {0xf0, 0xf0, 0xf0, 0xf};
     uint32_t affinity[MAX_CORE_NUMBER] = {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff};
+    float *pPrelu = NULL, *pBias = NULL, *pWeight = NULL, *pInput = NULL, *pOutputRef = NULL, *pOutput = NULL;
     struct timeval beg, end;
 
     printf("e.g. %s num_threads inChannels inputW inputH kernelW kernelH padW padH strideW strideH outChannels\n", argv[0]);
@@ -106,13 +153,13 @@ int main(int argc, char const *argv[])
     if (argc > 2)  inChannels   = atoi(argv[i++]);
     if (argc > 3)  inputW       = atoi(argv[i++]);
     if (argc > 4)  inputH       = atoi(argv[i++]);
-    if (argc > 5)  kernelW      = atoi(argv[i++]);
-    if (argc > 6)  kernelH      = atoi(argv[i++]);
-    if (argc > 7)  padW         = atoi(argv[i++]);
-    if (argc > 8)  padH         = atoi(argv[i++]);
-    if (argc > 9)  strideW      = atoi(argv[i++]);
-    if (argc > 10) strideH      = atoi(argv[i++]);
-    if (argc > 11) outChannels  = atoi(argv[i++]);
+    if (argc > 5)  outChannels  = atoi(argv[i++]);
+    if (argc > 6)  kernelW      = atoi(argv[i++]);
+    if (argc > 7)  kernelH      = atoi(argv[i++]);
+    if (argc > 8)  padW         = atoi(argv[i++]);
+    if (argc > 9)  padH         = atoi(argv[i++]);
+    if (argc > 10) strideW      = atoi(argv[i++]);
+    if (argc > 11) strideH      = atoi(argv[i++]);
 
     if (fuse_relu)
         reluType = TINY_SGEMM_RELU_TYPE_RELU;
@@ -133,19 +180,32 @@ int main(int argc, char const *argv[])
            padW, padH,
            strideW, strideH,
            outChannels, outputW, outputH);
+#if 0
+    pPrelu     = malloc(M*sizeof(float));
+#else
+    pBias      = malloc(M*sizeof(float));
+#endif
+    pWeight    = malloc(M*K*sizeof(float));
+    pInput     = malloc(inChannels*inputW*inputH*sizeof(float));
+    pOutputRef = malloc((M*(N + 16))*sizeof(float));
+    pOutput    = malloc(M*N*sizeof(float));
 
-    float *pWeight = malloc((M*K + inChannels*inputW*inputH + 2*M*N)*sizeof(float));
-    float *pInput  = pWeight + M*K;
-    float *pOutputRef = pInput + inChannels*inputW*inputH;
-    float *pOutput = pOutputRef + M*N;
-    if (NULL == pWeight)
+    if ((NULL == pWeight) || (NULL == pInput) || (NULL == pOutputRef) || (NULL == pOutput))
     {
         printf("%s\n", "malloc failed");
         return -1;
     }
 
-    for (i = 0; i < M * K; i++)                    pWeight[i] = (powf(-1, (rand()%2))*(rand()%1000))*1.0f;
-    for (i = 0; i < inChannels*inputW*inputH; i++) pInput[i]  = (powf(-1, (rand()%2))*(rand()%1000))*1.0f;
+    if (pPrelu)
+    {
+        for (i = 0; i < M; i++)                        pPrelu[i]  = (powf(-1, (rand()%2))*(100+rand()%100))*1.0f;
+    }
+    if (pBias)
+    {
+        for (i = 0; i < M; i++)                        pBias[i]   = (powf(-1, (rand()%2))*(100+rand()%100))*1.0f;
+    }
+    for (i = 0; i < M * K; i++)                    pWeight[i] = (powf(-1, (rand()%2))*(100+rand()%100))*1.0f;
+    for (i = 0; i < inChannels*inputW*inputH; i++) pInput[i]  = (powf(-1, (rand()%2))*(100+rand()%100))*1.0f;
 
 #if 1
     gettimeofday(&beg, NULL);
@@ -167,58 +227,57 @@ int main(int argc, char const *argv[])
             if (padInputSize) padChannelBuffer(align_input, pInput, inputH*inputW, padInputSize, inChannels, num_threads);
             else align_input = pInput;
         }
-        if (0 == padOutChannel) align_output = pOutputRef + M*N;
+        if (0 == padOutChannel) align_output = pOutputRef;
 
         conv3x3s1_neon(align_input,  inChannels,  inputH+2*padH,  inputW+2*padW,  (inputH+2*padH)*(inputW+2*padW)+padInputSize,
                        align_output, outChannels, outputH, outputW, outputH*outputW + padOutChannel,
-                       pWeight, NULL, num_threads);
+                       pWeight, pBias, num_threads);
 
         if (fuse_relu)
-            relu_padchannel(align_output, pOutputRef + M*N, M, N, padOutChannel, num_threads);
+            relu_padchannel(align_output, pOutputRef, M, N, padOutChannel, num_threads);
         else if (fuse_relu6)
-            relu6_padchannel(align_output, pOutputRef + M*N, M, N, padOutChannel, num_threads);
+            relu6_padchannel(align_output, pOutputRef, M, N, padOutChannel, num_threads);
+        else if (pPrelu)
+            prelu_padchannel(align_output, pOutputRef, pPrelu, bSharedPrelu, M, N, padOutChannel, num_threads);
         else if (padOutChannel)
-            padChannelBufferInv(pOutputRef + M*N, align_output, outputH*outputW, padOutChannel, outChannels, num_threads);
+            padChannelBufferInv(pOutputRef, align_output, outputH*outputW, padOutChannel, outChannels, num_threads);
     }
     gettimeofday(&end, NULL);
     printf("[Ref] time: %ld ms, avg time : %.3f ms, loop: %d threads: %d\n\n", (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/(1000.0*loopCnt), loopCnt, num_threads);
     showResult(pOutputRef, M*N);
     if (0 != (padW + padH) || 0 != padInputSize)
         free(align_input);
-    if (align_output)
+    if ((align_output) && (0 != padOutChannel))
         free(align_output);
     printf("direct end\n");
 #endif
 
-    ret =  tinySgemmConvInit(num_threads, THREAD_STACK_SIZE, &affinity, true, &pCtx);
-    printf("Init ok\n");
+    ret = tinySgemmConvInit(num_threads, THREAD_STACK_SIZE, &affinity, true, &pCtx);
+    printf("Init %d\n", ret);
+    psgemmInstance = tinySgemmConvCreateInstance(pCtx,
+                     pWeight,
+                     inChannels,  inputH, inputW,
+                     outChannels, kernelH, kernelW,
+                     padH, padW,
+                     strideH, strideW,
+                     dilateH, dilateW,
+                     false,
+                     TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
+    printf("Instance create ok\n");
 
-    for (j = 0; j < outLoopCnt; ++j)
+    //for (j = 0; j < outLoopCnt; ++j)
     {
-        psgemmInstance = tinySgemmConvCreateInstance(pCtx,
-                         pWeight,
-                         inChannels,  inputH, inputW,
-                         outChannels, kernelH, kernelW,
-                         padH, padW,
-                         strideH, strideW,
-                         dilateH, dilateW,
-                         false,
-                         TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
-        printf("Instance create ok\n");
-
         gettimeofday(&beg, NULL);
 
         for (i = 0; i < loopCnt; ++i)
             ret = tinySgemmConvProcess(psgemmInstance, pInput, pOutput,
-                                       NULL, reluType, NULL, false, NULL,
+                                       pBias, reluType, pPrelu, bSharedPrelu, NULL,
                                        TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
 
         gettimeofday(&end, NULL);
-        ret = tinySgemmConvReleaseInstance(psgemmInstance);
         printf("[%02d/%02d] time: %ld ms, avg time : %.3f ms, loop: %d threads: %d\n\n", j, outLoopCnt, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/(1000.0*loopCnt), loopCnt, num_threads);
     }
 
-    ret = tinySgemmConvDeinit(pCtx);
     showResult(pOutput, M*N);
 
     int sameFlag = 1;
@@ -228,7 +287,7 @@ int main(int argc, char const *argv[])
         {
             if (pOutputRef[i * N + j] != pOutput[i * N + j])
             {
-                printf("[%d, %d] %f %f\n", i, j, pOutput[i * N + j], pOutputRef[i * N + j]);
+                printf("[%d, %d] %f %f\n", i+1, j+1, pOutput[i * N + j], pOutputRef[i * N + j]);
                 sameFlag = 0;
                 break;
             }
@@ -237,8 +296,19 @@ int main(int argc, char const *argv[])
             break;
     }
 
-    if (pWeight)
-        free(pWeight);
+    free(pWeight);
+    free(pInput);
+    free(pOutputRef);
+    free(pOutput);
+    if (pBias)
+        free(pBias);
+    if (pPrelu)
+        free(pPrelu);
     printf("compare %s\n",(sameFlag)?"same":"diff");
+
+    ret = tinySgemmConvReleaseInstance(psgemmInstance);
+    //printf("Instance release %d\n", ret);
+    ret = tinySgemmConvDeinit(pCtx);
+    //printf("DeInit %d\n", ret);
     return 0;
 }

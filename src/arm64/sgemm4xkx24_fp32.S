@@ -98,33 +98,33 @@ COPYRIGHT_HOLDER:
 #define VSRC_4S_C3_4     v30.4S
 #define VSRC_4S_C3_5     v31.4S
 
-#define VSRC_16B_C0_0     v8.16B
-#define VSRC_16B_C0_1     v9.16B
-#define VSRC_16B_C0_2     v10.16B
-#define VSRC_16B_C0_3     v11.16B
-#define VSRC_16B_C0_4     v12.16B
-#define VSRC_16B_C0_5     v13.16B
+#define VSRC_16B_C0_0    v8.16B
+#define VSRC_16B_C0_1    v9.16B
+#define VSRC_16B_C0_2    v10.16B
+#define VSRC_16B_C0_3    v11.16B
+#define VSRC_16B_C0_4    v12.16B
+#define VSRC_16B_C0_5    v13.16B
 
-#define VSRC_16B_C1_0     v14.16B
-#define VSRC_16B_C1_1     v15.16B
-#define VSRC_16B_C1_2     v16.16B
-#define VSRC_16B_C1_3     v17.16B
-#define VSRC_16B_C1_4     v18.16B
-#define VSRC_16B_C1_5     v19.16B
+#define VSRC_16B_C1_0    v14.16B
+#define VSRC_16B_C1_1    v15.16B
+#define VSRC_16B_C1_2    v16.16B
+#define VSRC_16B_C1_3    v17.16B
+#define VSRC_16B_C1_4    v18.16B
+#define VSRC_16B_C1_5    v19.16B
 
-#define VSRC_16B_C2_0     v20.16B
-#define VSRC_16B_C2_1     v21.16B
-#define VSRC_16B_C2_2     v22.16B
-#define VSRC_16B_C2_3     v23.16B
-#define VSRC_16B_C2_4     v24.16B
-#define VSRC_16B_C2_5     v25.16B
+#define VSRC_16B_C2_0    v20.16B
+#define VSRC_16B_C2_1    v21.16B
+#define VSRC_16B_C2_2    v22.16B
+#define VSRC_16B_C2_3    v23.16B
+#define VSRC_16B_C2_4    v24.16B
+#define VSRC_16B_C2_5    v25.16B
 
-#define VSRC_16B_C3_0     v26.16B
-#define VSRC_16B_C3_1     v27.16B
-#define VSRC_16B_C3_2     v28.16B
-#define VSRC_16B_C3_3     v29.16B
-#define VSRC_16B_C3_4     v30.16B
-#define VSRC_16B_C3_5     v31.16B
+#define VSRC_16B_C3_0    v26.16B
+#define VSRC_16B_C3_1    v27.16B
+#define VSRC_16B_C3_2    v28.16B
+#define VSRC_16B_C3_3    v29.16B
+#define VSRC_16B_C3_4    v30.16B
+#define VSRC_16B_C3_5    v31.16B
 
 /* void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
     .text
@@ -157,23 +157,23 @@ sgemm4xKx24_fp32:
 
     mov VSRC_16B_C1_0, VSRC_16B_C0_0
     eor VSRC_16B_C1_1, VSRC_16B_C1_1, VSRC_16B_C1_1
-    mov VSRC_16B_C1_2, VSRC_16B_C1_0
+    mov VSRC_16B_C1_2, VSRC_16B_C0_0
     eor VSRC_16B_C1_3, VSRC_16B_C1_3, VSRC_16B_C1_3
-    mov VSRC_16B_C1_4, VSRC_16B_C1_0
+    mov VSRC_16B_C1_4, VSRC_16B_C0_0
     eor VSRC_16B_C1_5, VSRC_16B_C1_5, VSRC_16B_C1_5
 
     mov VSRC_16B_C2_0, VSRC_16B_C0_0
     eor VSRC_16B_C2_1, VSRC_16B_C2_1, VSRC_16B_C2_1
-    mov VSRC_16B_C2_2, VSRC_16B_C2_0
+    mov VSRC_16B_C2_2, VSRC_16B_C0_0
     eor VSRC_16B_C2_3, VSRC_16B_C2_3, VSRC_16B_C2_3
-    mov VSRC_16B_C2_4, VSRC_16B_C2_0
+    mov VSRC_16B_C2_4, VSRC_16B_C0_0
     eor VSRC_16B_C2_5, VSRC_16B_C2_5, VSRC_16B_C2_5
 
     mov VSRC_16B_C3_0, VSRC_16B_C0_0
     eor VSRC_16B_C3_1, VSRC_16B_C3_1, VSRC_16B_C3_1
-    mov VSRC_16B_C3_2, VSRC_16B_C3_0
+    mov VSRC_16B_C3_2, VSRC_16B_C0_0
     eor VSRC_16B_C3_3, VSRC_16B_C3_3, VSRC_16B_C3_3
-    mov VSRC_16B_C3_4, VSRC_16B_C3_0
+    mov VSRC_16B_C3_4, VSRC_16B_C0_0
     eor VSRC_16B_C3_5, VSRC_16B_C3_5, VSRC_16B_C3_5
 
     cmp KDiv4, #0
@@ -217,8 +217,8 @@ __LOOP:
     fmla VSRC_4S_C2_4, VSRC_4S_B4, VSRC_4S_A0_2
     fmla VSRC_4S_C2_5, VSRC_4S_B5, VSRC_4S_A0_2
 
-    fmla VSRC_4S_C3_4, VSRC_4S_B4, VSRC_4S_A0_3
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B], #64
+    fmla VSRC_4S_C3_4, VSRC_4S_B4, VSRC_4S_A0_3
     fmla VSRC_4S_C3_5, VSRC_4S_B5, VSRC_4S_A0_3
 
     /* 1 */
@@ -255,8 +255,8 @@ __LOOP:
     fmla VSRC_4S_C2_4, VSRC_4S_B4, VSRC_4S_A1_2
     fmla VSRC_4S_C2_5, VSRC_4S_B5, VSRC_4S_A1_2
 
-    fmla VSRC_4S_C3_4, VSRC_4S_B4, VSRC_4S_A1_3
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B], #64
+    fmla VSRC_4S_C3_4, VSRC_4S_B4, VSRC_4S_A1_3
     fmla VSRC_4S_C3_5, VSRC_4S_B5, VSRC_4S_A1_3
 
     /* 2 */
@@ -280,8 +280,8 @@ __LOOP:
 
     ld1 {VSRC_4S_B4, VSRC_4S_B5}, [B], #32
     fmla VSRC_4S_C3_0, VSRC_4S_B0, VSRC_4S_A0_3
-    prfm PLDL1KEEP, [B, #64]
     fmla VSRC_4S_C3_1, VSRC_4S_B1, VSRC_4S_A0_3
+    prfm PLDL1KEEP, [B, #64]
     fmla VSRC_4S_C3_2, VSRC_4S_B2, VSRC_4S_A0_3
     fmla VSRC_4S_C3_3, VSRC_4S_B3, VSRC_4S_A0_3
 
@@ -294,8 +294,8 @@ __LOOP:
     fmla VSRC_4S_C2_4, VSRC_4S_B4, VSRC_4S_A0_2
     fmla VSRC_4S_C2_5, VSRC_4S_B5, VSRC_4S_A0_2
 
-    fmla VSRC_4S_C3_4, VSRC_4S_B4, VSRC_4S_A0_3
     ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B], #64
+    fmla VSRC_4S_C3_4, VSRC_4S_B4, VSRC_4S_A0_3
     fmla VSRC_4S_C3_5, VSRC_4S_B5, VSRC_4S_A0_3
 
     /* 3 */
@@ -425,7 +425,7 @@ __KHAS1:
     beq __BASIS
 
     /* 0 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B]
+    ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B], #64
     ld1 {VSRC_4S_A0}, [A]
 
     fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A0_0
