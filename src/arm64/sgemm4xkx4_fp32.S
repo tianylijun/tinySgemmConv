@@ -208,7 +208,7 @@ __RELU:
 .macro RELU_MACRO, src_0:req
     fmax \src_0, \src_0, VZERO_4S
 .endm
-
+    prfm PSTL1STRM, [C, #16]
     RELU_MACRO VSRC_4S_C0_0
     RELU_MACRO VSRC_4S_C1_0
     RELU_MACRO VSRC_4S_C2_0
@@ -223,7 +223,7 @@ __RELU6:
     fmax \src_0, \src_0, VZERO_4S
     fmin \src_0, \src_0, VSIX_4S
 .endm
-
+    prfm PSTL1STRM, [C, #16]
     RELU6_MACRO VSRC_4S_C0_0
     RELU6_MACRO VSRC_4S_C1_0
     RELU6_MACRO VSRC_4S_C2_0
@@ -253,7 +253,7 @@ __PRELU_BEG:
     bsl VMASK_16B, VMUL_16B, \src_0_16B
     mov \src_0_16B, VMASK_16B
 .endm
-
+    prfm PSTL1STRM, [C, #16]
     PRELU_MACRO VSRC_4S_C0_0 VSRC_16B_C0_0 VSCALE_4S_0
     PRELU_MACRO VSRC_4S_C1_0 VSRC_16B_C1_0 VSCALE_4S_1
     PRELU_MACRO VSRC_4S_C2_0 VSRC_16B_C2_0 VSCALE_4S_2

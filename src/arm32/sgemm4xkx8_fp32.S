@@ -330,7 +330,7 @@ __RELU:
 .macro RELU_MACRO, src_0:req
     vmax.f32 \src_0, \src_0, VZERO_4S
 .endm
-
+    pld [C, #32]
     RELU_MACRO VSRC_4S_C0_0
     RELU_MACRO VSRC_4S_C0_1
 
@@ -352,7 +352,7 @@ __RELU6:
     vmax.f32 \src_0, \src_0, VZERO_4S
     vmin.f32 \src_0, \src_0, VSIX_4S
 .endm
-
+    pld [C, #32]
     RELU6_MACRO VSRC_4S_C0_0
     RELU6_MACRO VSRC_4S_C0_1
 
@@ -390,6 +390,7 @@ __PRELU_BEG:
     vmov \src_0, VMASK
 .endm
 
+    pld [C, #32]
     PRELU_MACRO VSRC_4S_C0_0 VSCALE_4S_0
     PRELU_MACRO VSRC_4S_C0_1 VSCALE_4S_0
 

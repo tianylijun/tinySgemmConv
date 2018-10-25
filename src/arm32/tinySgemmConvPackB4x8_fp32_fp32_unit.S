@@ -33,6 +33,8 @@ COPYRIGHT_HOLDER:
 #define VSRC_4S_B0        q8
 #define VSRC_4S_B1        q9
 
+#define VSRC_4S_B2        q10
+#define VSRC_4S_B3        q11
 /************ Stack fp Area *********/
 #define  STACK_START  [fp, #-540] // -512-28
 
@@ -89,15 +91,15 @@ __LOOP:
     subs KDiv4, KDiv4, #1
     vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vld1.32 {VSRC_4S_B2, VSRC_4S_B3}, [B], N
+    vst1.32 {VSRC_4S_B2, VSRC_4S_B3}, [PackB]!
 
     vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
     vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
     cmp KDiv4, #0
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vld1.32 {VSRC_4S_B2, VSRC_4S_B3}, [B], N
+    vst1.32 {VSRC_4S_B2, VSRC_4S_B3}, [PackB]!
 
     bne __LOOP
 
@@ -109,8 +111,8 @@ __KHAS2:
     vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
     vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B], N
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vld1.32 {VSRC_4S_B2, VSRC_4S_B3}, [B], N
+    vst1.32 {VSRC_4S_B2, VSRC_4S_B3}, [PackB]!
 
 __KHAS1:
     and KHas1, K, #1

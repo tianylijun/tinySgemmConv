@@ -23,6 +23,9 @@
 #include "innerTinySgemmConv.h"
 #include "sgemm.h"
 
+//#define TIME_PRT
+//#define TIME_PRT_UINT
+
 #ifdef __aarch64__
 
 extern "C" void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
@@ -38,7 +41,10 @@ void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     MDiv4 = M>>2;
     MHas2 = (M>>1)&1;
     MHas1 = M&1;
-    //printf("----%s %d--- %d %d %d %d \n", __func__, __LINE__, M, MDiv4, MHas2, MHas1);
+#ifdef TIME_PRT_UINT
+    struct timeval beg, end;
+    gettimeofday(&beg, NULL);
+#endif
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx24_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
@@ -63,6 +69,10 @@ void sgemmMxKx24_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
 
     if (MHas1)
         sgemm1xKx24_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+#ifdef TIME_PRT_UINT
+    gettimeofday(&end, NULL);
+    printf("%s [%d %d %d %d] time: %f ms\n", __func__, MDiv4, MHas2, MHas1, K, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000.0);
+#endif
 }
 
 void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
@@ -71,7 +81,10 @@ void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     MDiv4 = M>>2;
     MHas2 = (M>>1)&1;
     MHas1 = M&1;
-    //printf("----%s %d--- %d %d %d %d \n", __func__, __LINE__, M, MDiv4, MHas2, MHas1);
+#ifdef TIME_PRT_UINT
+    struct timeval beg, end;
+    gettimeofday(&beg, NULL);
+#endif
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx16_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
@@ -96,6 +109,10 @@ void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
 
     if (MHas1)
         sgemm1xKx16_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+#ifdef TIME_PRT_UINT
+    gettimeofday(&end, NULL);
+    printf("%s [%d %d %d %d] time: %f ms\n", __func__, MDiv4, MHas2, MHas1, K, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000.0);
+#endif
 }
 
 #else
@@ -111,7 +128,11 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     MDiv4 = M>>2;
     MHas2 = (M>>1)&1;
     MHas1 = M&1;
-    //printf("----%s %d--- %d %d %d %d \n", __func__, __LINE__, M, MDiv4, MHas2, MHas1);
+#ifdef TIME_PRT_UINT
+    struct timeval beg, end;
+    gettimeofday(&beg, NULL);
+#endif
+
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
@@ -136,6 +157,10 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
 
     if (MHas1)
         sgemm1xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+#ifdef TIME_PRT_UINT
+    gettimeofday(&end, NULL);
+    printf("%s [%d %d %d %d] time: %f ms\n", __func__, MDiv4, MHas2, MHas1, K, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000.0);
+#endif
 }
 
 #endif
@@ -433,6 +458,10 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     MDiv4 = M>>2;
     MHas2 = (M>>1)&1;
     MHas1 = M&1;
+#ifdef TIME_PRT
+    struct timeval beg, end;
+    gettimeofday(&beg, NULL);
+#endif
 
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
@@ -458,6 +487,10 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     if (MHas1)
         sgemm1xKx8_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+#ifdef TIME_PRT
+    gettimeofday(&end, NULL);
+    printf("%s [%d %d %d %d] time: %f ms\n", __func__, MDiv4, MHas2, MHas1, K, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000.0);
+#endif
 }
 
 extern "C" void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
@@ -690,6 +723,10 @@ void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     MDiv4 = M>>2;
     MHas2 = (M>>1)&1;
     MHas1 = M&1;
+#ifdef TIME_PRT
+    struct timeval beg, end;
+    gettimeofday(&beg, NULL);
+#endif
 
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
@@ -715,6 +752,10 @@ void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     if (MHas1)
         sgemm1xKx4_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+#ifdef TIME_PRT
+    gettimeofday(&end, NULL);
+    printf("%s [%d %d %d %d] time: %f ms\n", __func__, MDiv4, MHas2, MHas1, K, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000.0);
+#endif
 }
 
 /* fp32 unit sgemm block is, A:4x4  B:4x2 C:4x2 */
@@ -1112,6 +1153,10 @@ void sgemmMxKx2_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     MDiv4 = M>>2;
     MHas2 = (M>>1)&1;
     MHas1 = M&1;
+#ifdef TIME_PRT
+    struct timeval beg, end;
+    gettimeofday(&beg, NULL);
+#endif
 
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
@@ -1137,6 +1182,10 @@ void sgemmMxKx2_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     if (MHas1)
         sgemm1xKx2_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+#ifdef TIME_PRT
+    gettimeofday(&end, NULL);
+    printf("%s [%d %d %d %d] time: %f ms\n", __func__, MDiv4, MHas2, MHas1, K, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000.0);
+#endif
 }
 
 /* fp32 unit sgemm block is, A:4x4  B:4x1 C:4x1 */
@@ -1434,7 +1483,10 @@ void sgemmMxKx1_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     MDiv4 = M>>2;
     MHas2 = (M>>1)&1;
     MHas1 = M&1;
-
+#ifdef TIME_PRT
+    struct timeval beg, end;
+    gettimeofday(&beg, NULL);
+#endif
     for (uint32_t i = 0; i < MDiv4; ++i)
     {
         sgemm4xKx1_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
@@ -1459,4 +1511,8 @@ void sgemmMxKx1_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
 
     if (MHas1)
         sgemm1xKx1_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+#ifdef TIME_PRT
+    gettimeofday(&end, NULL);
+    printf("%s [%d %d %d %d] time: %f ms\n", __func__, MDiv4, MHas2, MHas1, K, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000.0);
+#endif
 }

@@ -30,9 +30,7 @@ COPYRIGHT_HOLDER:
 
 /************ Vector Regs ***********/
 /* RSV Q0~Q7 */
-#define VSRC_4S_B0        q8
-#define VSRC_4S_B1        q9
-#define VSRC_4S_B2        q10
+
 
 /************ Stack fp Area *********/
 #define  STACK_START  [fp, #-540] // -512-28
@@ -82,36 +80,27 @@ tinySgemmConvPackB4x12_fp32_fp32_unit:
     lsl N, N, #2
     lsr KDiv4, K, #2
 
-    subs N, N, #32
     cmp KDiv4, #0
     beq __KHAS2
 
 __LOOP:
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
+    vldm B, {d16-d21}
+    add B, B, N
+    vstm PackB!, {d16-d21}
     subs KDiv4, KDiv4, #1
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
 
-    vld1.32 {VSRC_4S_B2}, [B], N
-    vst1.32 {VSRC_4S_B2}, [PackB]!
+    vldm B, {d22-d27}
+    add B, B, N
+    vstm PackB!, {d22-d27}
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vldm B, {d16-d21}
+    add B, B, N
+    vstm PackB!, {d16-d21}
 
-    vld1.32 {VSRC_4S_B2}, [B], N
-    vst1.32 {VSRC_4S_B2}, [PackB]!
-
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
-
-    vld1.32 {VSRC_4S_B2}, [B], N
-    vst1.32 {VSRC_4S_B2}, [PackB]!
-
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
-
-    vld1.32 {VSRC_4S_B2}, [B], N
+    vldm B, {d22-d27}
+    add B, B, N
     cmp KDiv4, #0
-    vst1.32 {VSRC_4S_B2}, [PackB]!
+    vstm PackB!, {d22-d27}
 
     bne __LOOP
 
@@ -120,28 +109,21 @@ __KHAS2:
     cmp KHas2, #0
     beq __KHAS1
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
+    vldm B, {d16-d21}
+    add B, B, N
+    vstm PackB!, {d16-d21}
 
-    vld1.32 {VSRC_4S_B2}, [B], N
-    vst1.32 {VSRC_4S_B2}, [PackB]!
-
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
-
-    vld1.32 {VSRC_4S_B2}, [B], N
-    vst1.32 {VSRC_4S_B2}, [PackB]!
+    vldm B, {d22-d27}
+    add B, B, N
+    vstm PackB!, {d22-d27}
 
 __KHAS1:
     and KHas1, K, #1
     cmp KHas1, #0
     beq __END
 
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B]!
-    vst1.32 {VSRC_4S_B0, VSRC_4S_B1}, [PackB]!
-
-    vld1.32 {VSRC_4S_B2}, [B], N
-    vst1.32 {VSRC_4S_B2}, [PackB]!
+    vldm B, {d16-d21}
+    vstm PackB, {d16-d21}
 
 __END:
     pop {r4}

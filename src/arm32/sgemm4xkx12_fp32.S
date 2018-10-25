@@ -161,16 +161,16 @@ sgemm4xKx12_fp32:
 
 __LOOP:
     /* 0 */
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
+    vldm B!, {d2-d7}
     subs KDiv4, KDiv4, #1
     vld1.32 {VSRC_4S_A}, [A:128]!
 
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B2}, [B:128]!
-    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [B, #64]
-    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
+    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [A, #16]
+    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
+
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
 
     vmla.f32 VSRC_4S_C2_0, VSRC_4S_B0, VSRC_4S_A_2
@@ -180,20 +180,20 @@ __LOOP:
     vmla.f32 VSRC_4S_C3_1, VSRC_4S_B1, VSRC_4S_A_3
 
     vmla.f32 VSRC_4S_C0_2, VSRC_4S_B2, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
     vmla.f32 VSRC_4S_C1_2, VSRC_4S_B2, VSRC_4S_A_1
+
     vmla.f32 VSRC_4S_C2_2, VSRC_4S_B2, VSRC_4S_A_2
     vmla.f32 VSRC_4S_C3_2, VSRC_4S_B2, VSRC_4S_A_3
 
     /* 1 */
+    vldm B!, {d2-d7}
     vld1.32 {VSRC_4S_A}, [A:128]!
 
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B2}, [B:128]!
-    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [B, #64]
-    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
+    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [A, #16]
+    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
 
     vmla.f32 VSRC_4S_C2_0, VSRC_4S_B0, VSRC_4S_A_2
@@ -203,20 +203,20 @@ __LOOP:
     vmla.f32 VSRC_4S_C3_1, VSRC_4S_B1, VSRC_4S_A_3
 
     vmla.f32 VSRC_4S_C0_2, VSRC_4S_B2, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
     vmla.f32 VSRC_4S_C1_2, VSRC_4S_B2, VSRC_4S_A_1
     vmla.f32 VSRC_4S_C2_2, VSRC_4S_B2, VSRC_4S_A_2
     vmla.f32 VSRC_4S_C3_2, VSRC_4S_B2, VSRC_4S_A_3
 
     /* 2 */
+    vldm B!, {d2-d7}
     vld1.32 {VSRC_4S_A}, [A:128]!
 
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B2}, [B:128]!
-    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [B, #64]
-    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
+    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [A, #16]
+    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
+
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
 
     vmla.f32 VSRC_4S_C2_0, VSRC_4S_B0, VSRC_4S_A_2
@@ -226,20 +226,19 @@ __LOOP:
     vmla.f32 VSRC_4S_C3_1, VSRC_4S_B1, VSRC_4S_A_3
 
     vmla.f32 VSRC_4S_C0_2, VSRC_4S_B2, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
     vmla.f32 VSRC_4S_C1_2, VSRC_4S_B2, VSRC_4S_A_1
     vmla.f32 VSRC_4S_C2_2, VSRC_4S_B2, VSRC_4S_A_2
     vmla.f32 VSRC_4S_C3_2, VSRC_4S_B2, VSRC_4S_A_3
 
     /* 3 */
+    vldm B!, {d2-d7}
     vld1.32 {VSRC_4S_A}, [A:128]!
 
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B2}, [B:128]!
-    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [B, #64]
-    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
+    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [A, #16]
+    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
 
     vmla.f32 VSRC_4S_C2_0, VSRC_4S_B0, VSRC_4S_A_2
@@ -261,39 +260,39 @@ __KHAS2:
     cmp KHas2, #0
     beq __KHAS1
 
-    /* 0 */
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
+    /* 0 */ 
+    vldm B!, {d2-d7}
     vld1.32 {VSRC_4S_A}, [A:128]!
 
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B2}, [B:128]!
-    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [B, #64]
-    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
+    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [A, #16]
+    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
 
     vmla.f32 VSRC_4S_C2_0, VSRC_4S_B0, VSRC_4S_A_2
     vmla.f32 VSRC_4S_C2_1, VSRC_4S_B1, VSRC_4S_A_2
 
     vmla.f32 VSRC_4S_C3_0, VSRC_4S_B0, VSRC_4S_A_3
+    pld [B, #32]
     vmla.f32 VSRC_4S_C3_1, VSRC_4S_B1, VSRC_4S_A_3
 
     vmla.f32 VSRC_4S_C0_2, VSRC_4S_B2, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
     vmla.f32 VSRC_4S_C1_2, VSRC_4S_B2, VSRC_4S_A_1
+
     vmla.f32 VSRC_4S_C2_2, VSRC_4S_B2, VSRC_4S_A_2
     vmla.f32 VSRC_4S_C3_2, VSRC_4S_B2, VSRC_4S_A_3
 
     /* 1 */
+    vldm B!, {d2-d7}
     vld1.32 {VSRC_4S_A}, [A:128]!
 
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B2}, [B:128]!
-    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [B, #64]
-    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
+    vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     pld [A, #16]
+    vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
 
     vmla.f32 VSRC_4S_C2_0, VSRC_4S_B0, VSRC_4S_A_2
@@ -313,11 +312,10 @@ __KHAS1:
     beq __BASIS
 
     /* 0 */
-    vld1.32 {VSRC_4S_B0, VSRC_4S_B1}, [B:128]!
+    vldm B, {d2-d7}
     vld1.32 {VSRC_4S_A}, [A]
 
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
-    vld1.32 {VSRC_4S_B2}, [B:128]
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A_1
@@ -371,7 +369,7 @@ __RELU:
 .macro RELU_MACRO, src_0:req
     vmax.f32 \src_0, \src_0, VZERO_4S
 .endm
-
+    pld [C, #48]
     RELU_MACRO VSRC_4S_C0_0
     RELU_MACRO VSRC_4S_C0_1
     RELU_MACRO VSRC_4S_C0_2
@@ -397,7 +395,7 @@ __RELU6:
     vmax.f32 \src_0, \src_0, VZERO_4S
     vmin.f32 \src_0, \src_0, VSIX_4S
 .endm
-
+    pld [C, #48]
     RELU6_MACRO VSRC_4S_C0_0
     RELU6_MACRO VSRC_4S_C0_1
     RELU6_MACRO VSRC_4S_C0_2
@@ -438,7 +436,7 @@ __PRELU_BEG:
     vbsl VMASK, VMUL_4S, \src_0
     vmov \src_0, VMASK
 .endm
-
+    pld [C, #48]
     PRELU_MACRO VSRC_4S_C0_0 VSCALE_4S_0
     PRELU_MACRO VSRC_4S_C0_1 VSCALE_4S_0
     PRELU_MACRO VSRC_4S_C0_2 VSCALE_4S_0

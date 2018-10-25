@@ -262,7 +262,8 @@ int main(int argc, char const *argv[])
                      strideH, strideW,
                      dilateH, dilateW,
                      false,
-                     TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32);
+                     TINY_SGEMM_CONV_DATA_MODE_A_FP32_FP32,
+                     NULL, NULL, NULL);
     printf("Instance create ok\n");
 
     //for (j = 0; j < outLoopCnt; ++j)

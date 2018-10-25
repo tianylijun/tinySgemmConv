@@ -246,7 +246,9 @@ void * sgemm_thread_process(void *args)
         struct msg *pMsg = rcvMsg(pThreadInfo);
         assert(NULL != pMsg);
         pMsg->status = MSG_STATUS_BUSY;
+#ifdef HREAD_STASTIC_INFO_ENABLE
         pMsg->timeStampBeg = timestamp();
+#endif
         //printf("[%llu] thread [%d][%d] rcvMsg %s\n", pMsg->sequenceId, pThreadInfo->index, list_number(&pThreadInfo->msgQueueList), MSG2STR(pMsg->cmd));
         switch(pMsg->cmd)
         {
@@ -258,11 +260,10 @@ void * sgemm_thread_process(void *args)
                 if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType &&
                         FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
-                    /* packB K*TINY_SGEMM_UNIT_N */
-                    tinySgemmConvPackBUnitN_fp32_fp32((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
-
                     /* do sgemm */
 #ifdef __aarch64__
+                    tinySgemmConvPackB4x24_fp32_fp32_unit((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
+
                     sgemmMxKx24_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
                                       (float *)pMsg->JobInfo.sgemmInfo.pPackB,
                                       pMsg->JobInfo.sgemmInfo.pC,
@@ -274,6 +275,8 @@ void * sgemm_thread_process(void *args)
                                       pMsg->JobInfo.sgemmInfo.bSharedPrelu,
                                       pMsg->JobInfo.sgemmInfo.pBasis);
 #else
+                    tinySgemmConvPackB4x12_fp32_fp32_unit((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
+
                     sgemmMxKx12_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
                                       (float *)pMsg->JobInfo.sgemmInfo.pPackB,
                                       pMsg->JobInfo.sgemmInfo.pC,
@@ -285,6 +288,7 @@ void * sgemm_thread_process(void *args)
                                       pMsg->JobInfo.sgemmInfo.bSharedPrelu,
                                       pMsg->JobInfo.sgemmInfo.pBasis);
 #endif
+
                 }
                 else if (FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
                 {
@@ -445,8 +449,11 @@ void * sgemm_thread_process(void *args)
             printf("Err: msg %s not process\n", MSG2STR(pMsg->cmd));
             break;
         }
-
+#ifdef HREAD_STASTIC_INFO_ENABLE
         pMsg->timeStampEnd = timestamp();
+#endif
+
+#ifndef SCHEDULE_BY_JOBS_NUM
         switch(pMsg->cmd)
         {
         case MSG_CMD_SGEMM:
@@ -457,6 +464,7 @@ void * sgemm_thread_process(void *args)
         default:
             break;
         }
+#endif
         pthread_mutex_lock(&pMsg->lock);
         pMsg->status = MSG_STATUS_DONE;
         pthread_cond_signal(&pMsg->jobDoneCondition);

@@ -78,6 +78,10 @@ struct tinySgemmInstance
     uint32_t strideW;
     uint32_t dilateH;
     uint32_t dilateW;
+    bool bPackAExt;
+    bool bPackBExt;
+    bool bIm2colExt;
+    bool bNoNeedIm2col;
     struct tinySgemmConvCtx *pCtx;
 };
 

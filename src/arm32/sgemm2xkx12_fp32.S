@@ -236,6 +236,7 @@ __KHAS2:
     pld [B, #64]
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A0_3
     vmla.f32 VSRC_4S_C1_1, VSRC_4S_B1, VSRC_4S_A0_3
+    pld [A, #16]
 
     vmla.f32 VSRC_4S_C0_2, VSRC_4S_B2, VSRC_4S_A0_2
     vmla.f32 VSRC_4S_C1_2, VSRC_4S_B2, VSRC_4S_A0_3
@@ -286,7 +287,7 @@ __RELU:
 .macro RELU_MACRO, src_0:req
     vmax.f32 \src_0, \src_0, VZERO_4S
 .endm
-
+    pld [C, #48]
     RELU_MACRO VSRC_4S_C0_0
     RELU_MACRO VSRC_4S_C0_1
     RELU_MACRO VSRC_4S_C0_2
@@ -304,7 +305,7 @@ __RELU6:
     vmax.f32 \src_0, \src_0, VZERO_4S
     vmin.f32 \src_0, \src_0, VSIX_4S
 .endm
-
+    pld [C, #48]
     RELU6_MACRO VSRC_4S_C0_0
     RELU6_MACRO VSRC_4S_C0_1
     RELU6_MACRO VSRC_4S_C0_2
@@ -338,6 +339,7 @@ __PRELU_BEG:
     vmov \src_0, VMASK
 .endm
 
+    pld [C, #48]
     PRELU_MACRO VSRC_4S_C0_0 VSCALE_2S_0
     PRELU_MACRO VSRC_4S_C0_1 VSCALE_2S_0
     PRELU_MACRO VSRC_4S_C0_2 VSCALE_2S_0
