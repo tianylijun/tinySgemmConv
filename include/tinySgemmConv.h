@@ -56,6 +56,7 @@ enum TINY_SGEMM_RELU_TYPE
 extern "C" {
 #endif
 
+
 int tinySgemmConvInit(IN uint32_t num_threads, IN int32_t stack_size, IN uint32_t (*affinity)[MAX_CORE_NUMBER], IN bool bindBigCore, OUT void **pCtx);
 uint32_t tinySgemmGetPackBBufferSizePerThread(uint32_t inChannels, uint32_t kernelH, uint32_t kernelW,
         uint32_t outChannels, enum TINY_SGEMM_CONV_DATA_MODE mode);
@@ -65,8 +66,10 @@ uint32_t tinySgemmGetIm2colBufferSize(uint32_t inChannels, uint32_t inputH, uint
                                       uint32_t kernelH, uint32_t kernelW,
                                       uint32_t padH, uint32_t padW,
                                       uint32_t strideH, uint32_t strideW,
+                                      uint32_t dilateH, uint32_t dilateW,
                                       bool tf_pad,
                                       enum TINY_SGEMM_CONV_DATA_MODE mode);
+
 /* pCtx param is return by  tinySgemmConvInit */
 void* tinySgemmConvCreateInstance(IN void *pCtx, IN void *pWeight,
                                   IN uint32_t inChannels, IN uint32_t inputH, IN uint32_t inputW,
