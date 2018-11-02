@@ -113,7 +113,7 @@ __KHAS1:
     cmp KHas1, #0
     beq __END
 
-    vld1.32 {VSRC_2S_B0}, [B], N
+    vld1.32 {VSRC_2S_B0}, [B]
     vst1.32 {VSRC_2S_B0}, [PackB]
 
 __END:

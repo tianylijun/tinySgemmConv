@@ -13,7 +13,7 @@ COPYRIGHT_HOLDER:
 #define STACK_SIZE       512
 
 /* RSV [r4~r9,fp] */
-/* void sgemm4xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm4xKx8_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
 /**************in param**************/
 #define A                r0
 #define B                r1
@@ -130,15 +130,15 @@ ABI: hard    r0 r1 r2 r3  [fp,#0]  [fp,#4]  [s0]      [s0]      [fp,#8]   [fp,#1
 ABI: softfp  r0 r1 r2 r3  [fp,#0]  [fp,#4]  [fp,#8]   [fp,#12]  [fp,#16]  [fp,#20]
 */
 
-/* void sgemm4xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm4xKx8_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
     .text
     .align 5
 #ifdef __APPLE__
-    .global _sgemm4xKx8_fp32
-_sgemm4xKx8_fp32:
+    .global _sgemm4xKx8_fp32_align
+_sgemm4xKx8_fp32_align:
 #else
-    .global sgemm4xKx8_fp32
-sgemm4xKx8_fp32:
+    .global sgemm4xKx8_fp32_align
+sgemm4xKx8_fp32_align:
 #endif
     push {r4-r9, fp}
     add fp, sp, #28
@@ -312,22 +312,22 @@ __BASIS_STORE:
     vadd.f32 VSRC_4S_C0_1, VSRC_4S_C0_1, VBASIS_4S_DUP_1
 
     vadd.f32 VSRC_4S_C1_0, VSRC_4S_C1_0, VBASIS_4S_DUP_2
-    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C], N
+    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C:128], N
     pld [C, #32]
     vdup.32 VBASIS_4S_DUP_1, VBASIS_4S_2
     vadd.f32 VSRC_4S_C1_1, VSRC_4S_C1_1, VBASIS_4S_DUP_2
 
     vadd.f32 VSRC_4S_C2_0, VSRC_4S_C2_0, VBASIS_4S_DUP_1
-    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C], N
+    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C:128], N
     pld [C, #32]
     vdup.32 VBASIS_4S_DUP_2, VBASIS_4S_3
     vadd.f32 VSRC_4S_C2_1, VSRC_4S_C2_1, VBASIS_4S_DUP_1
 
     vadd.f32 VSRC_4S_C3_0, VSRC_4S_C3_0, VBASIS_4S_DUP_2
-    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C], N
+    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C:128], N
     pld [C, #32]
     vadd.f32 VSRC_4S_C3_1, VSRC_4S_C3_1, VBASIS_4S_DUP_2
-    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C]
+    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C:128]
 
     b __END
 
@@ -367,20 +367,20 @@ __RELU:
     RELU_MACRO VSRC_4S_C0_1
 
     RELU_MACRO VSRC_4S_C1_0
-    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C], N
+    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C:128], N
     pld [C, #32]
     RELU_MACRO VSRC_4S_C1_1
 
     RELU_MACRO VSRC_4S_C2_0
-    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C], N
+    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C:128], N
     pld [C, #32]
     RELU_MACRO VSRC_4S_C2_1
 
     RELU_MACRO VSRC_4S_C3_0
-    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C], N
+    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C:128], N
     pld [C, #32]
     RELU_MACRO VSRC_4S_C3_1
-    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C]
+    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C:128]
 
     b __END
 
@@ -396,20 +396,20 @@ __RELU6:
     RELU6_MACRO VSRC_4S_C0_1
 
     RELU6_MACRO VSRC_4S_C1_0
-    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C], N
+    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C:128], N
     pld [C, #32]
     RELU6_MACRO VSRC_4S_C1_1
 
     RELU6_MACRO VSRC_4S_C2_0
-    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C], N
+    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C:128], N
     pld [C, #32]
     RELU6_MACRO VSRC_4S_C2_1
 
     RELU6_MACRO VSRC_4S_C3_0
-    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C], N
+    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C:128], N
     pld [C, #32]
     RELU6_MACRO VSRC_4S_C3_1
-    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C]
+    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C:128]
 
     b __END
 
@@ -441,28 +441,28 @@ __PRELU_BEG:
     PRELU_MACRO VSRC_4S_C0_1 VSCALE_4S_0
 
     PRELU_MACRO VSRC_4S_C1_0 VSCALE_4S_1
-    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C], N
+    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C:128], N
     pld [C, #32]
     PRELU_MACRO VSRC_4S_C1_1 VSCALE_4S_1
 
     PRELU_MACRO VSRC_4S_C2_0 VSCALE_4S_2
-    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C], N
+    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C:128], N
     pld [C, #32]
     PRELU_MACRO VSRC_4S_C2_1 VSCALE_4S_2
 
     PRELU_MACRO VSRC_4S_C3_0 VSCALE_4S_3
-    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C], N
+    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C:128], N
     pld [C, #32]
     PRELU_MACRO VSRC_4S_C3_1 VSCALE_4S_3
-    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C]
+    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C:128]
 
     b __END
 
 __STORE:
-    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C], N
-    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C], N
-    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C], N
-    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C]
+    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C:128], N
+    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C:128], N
+    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C:128], N
+    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C:128]
 
 __END:
     sub r4, fp, #156

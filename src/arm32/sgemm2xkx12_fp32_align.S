@@ -13,7 +13,7 @@ COPYRIGHT_HOLDER:
 #define STACK_SIZE       512
 
 /* RSV [r4~r9,fp] */
-/* void sgemm2xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm2xKx12_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
 /**************in param**************/
 #define A                r0
 #define B                r1
@@ -117,15 +117,15 @@ ABI: hard    r0 r1 r2 r3  [fp,#0]  [fp,#4]  [s0]      [s0]      [fp,#8]   [fp,#1
 ABI: softfp  r0 r1 r2 r3  [fp,#0]  [fp,#4]  [fp,#8]   [fp,#12]  [fp,#16]  [fp,#20]
 */
 
-/* void sgemm2xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm2xKx12_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
     .text
     .align 5
 #ifdef __APPLE__
-    .global _sgemm2xKx12_fp32
-_sgemm2xKx12_fp32:
+    .global _sgemm2xKx12_fp32_align
+_sgemm2xKx12_fp32_align:
 #else
-    .global sgemm2xKx12_fp32
-sgemm2xKx12_fp32:
+    .global sgemm2xKx12_fp32_align
+sgemm2xKx12_fp32_align:
 #endif
     push {r4-r9, fp}
     add fp, sp, #28
@@ -377,7 +377,6 @@ __PRELU_BEG:
     add C, C, N
     PRELU_MACRO VSRC_4S_C1_2 VSCALE_2S_1
     vstm C, {d26-d31}
-
     b __END
 
 __STORE:

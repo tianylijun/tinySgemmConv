@@ -13,7 +13,7 @@ COPYRIGHT_HOLDER:
 #define STACK_SIZE       512
 
 /* RSV [r4~r9,fp] */
-/* void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm4xKx12_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
 /**************in param**************/
 #define A                r0
 #define B                r1
@@ -117,15 +117,15 @@ ABI: hard    r0 r1 r2 r3  [fp,#0]  [fp,#4]  [s0]      [s0]      [fp,#8]   [fp,#1
 ABI: softfp  r0 r1 r2 r3  [fp,#0]  [fp,#4]  [fp,#8]   [fp,#12]  [fp,#16]  [fp,#20]
 */
 
-/* void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm4xKx12_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
     .text
     .align 5
 #ifdef __APPLE__
-    .global _sgemm4xKx12_fp32
-_sgemm4xKx12_fp32:
+    .global _sgemm4xKx12_fp32_align
+_sgemm4xKx12_fp32_align:
 #else
-    .global sgemm4xKx12_fp32
-sgemm4xKx12_fp32:
+    .global sgemm4xKx12_fp32_align
+sgemm4xKx12_fp32_align:
 #endif
     push {r4-r9, fp}
     add fp, sp, #28
@@ -232,9 +232,9 @@ __LOOP:
     vld1.32 {VSRC_4S_A}, [A:128]!
 
     vmla.f32 VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A_0
-    #pld [B, #48]
+    pld [B, #48]
     vmla.f32 VSRC_4S_C0_1, VSRC_4S_B1, VSRC_4S_A_0
-    #pld [A, #16]
+    pld [A, #16]
     vmla.f32 VSRC_4S_C0_2, VSRC_4S_B2, VSRC_4S_A_0
 
     vmla.f32 VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A_1
@@ -368,6 +368,7 @@ __BASIS_STORE:
     vadd.f32 VSRC_4S_C3_1, VSRC_4S_C3_1, VBASIS_4S_DUP_2
     add C, C, N
     vadd.f32 VSRC_4S_C3_2, VSRC_4S_C3_2, VBASIS_4S_DUP_2
+
     vstm C, {d26-d31}
 
     b __END
@@ -513,14 +514,14 @@ __STORE:
     vstm C, {d26-d31}
 #else
     subs N, N, #32
-    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C]!
-    vst1.32 {VSRC_4S_C0_2}, [C], N
-    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C]!
-    vst1.32 {VSRC_4S_C1_2}, [C], N
-    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C]!
-    vst1.32 {VSRC_4S_C2_2}, [C], N
-    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C]!
-    vst1.32 {VSRC_4S_C3_2}, [C]
+    vst1.32 {VSRC_4S_C0_0, VSRC_4S_C0_1}, [C:128]!
+    vst1.32 {VSRC_4S_C0_2}, [C:128], N
+    vst1.32 {VSRC_4S_C1_0, VSRC_4S_C1_1}, [C:128]!
+    vst1.32 {VSRC_4S_C1_2}, [C:128], N
+    vst1.32 {VSRC_4S_C2_0, VSRC_4S_C2_1}, [C:128]!
+    vst1.32 {VSRC_4S_C2_2}, [C:128], N
+    vst1.32 {VSRC_4S_C3_0, VSRC_4S_C3_1}, [C:128]!
+    vst1.32 {VSRC_4S_C3_2}, [C:128]
 #endif
 
 __END:

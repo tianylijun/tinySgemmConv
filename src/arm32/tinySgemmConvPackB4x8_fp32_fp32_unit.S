@@ -32,9 +32,9 @@ COPYRIGHT_HOLDER:
 /* RSV Q0~Q7 */
 #define VSRC_4S_B0        q8
 #define VSRC_4S_B1        q9
-
 #define VSRC_4S_B2        q10
 #define VSRC_4S_B3        q11
+
 /************ Stack fp Area *********/
 #define  STACK_START  [fp, #-540] // -512-28
 

@@ -188,7 +188,31 @@ __KHAS1:
 __BASIS:
     cmp pBasis, #0
     beq __RELU
-     
+
+    cmp pPrelu, #0
+    bne __ONLY_BASIS
+
+    cmp reluType, #0
+    bne __ONLY_BASIS
+
+__BASIS_STORE:
+    ld4r {VBASIS_4S_DUP_0, VBASIS_4S_DUP_1, VBASIS_4S_DUP_2, VBASIS_4S_DUP_3}, [pBasis]
+
+    fadd VSRC_4S_C0_0, VSRC_4S_C0_0, VBASIS_4S_DUP_0
+    prfm PSTL1STRM, [C, #16]
+    fadd VSRC_4S_C1_0, VSRC_4S_C1_0, VBASIS_4S_DUP_1
+    st1 {VSRC_4S_C0_0}, [C], N
+    prfm PSTL1STRM, [C, #16]
+    fadd VSRC_4S_C2_0, VSRC_4S_C2_0, VBASIS_4S_DUP_2
+    st1 {VSRC_4S_C1_0}, [C], N
+    prfm PSTL1STRM, [C, #16]
+    fadd VSRC_4S_C3_0, VSRC_4S_C3_0, VBASIS_4S_DUP_3
+    st1 {VSRC_4S_C2_0}, [C], N
+    st1 {VSRC_4S_C3_0}, [C]
+
+    b __END
+
+__ONLY_BASIS:
     ld4r {VBASIS_4S_DUP_0, VBASIS_4S_DUP_1, VBASIS_4S_DUP_2, VBASIS_4S_DUP_3}, [pBasis]
 
     fadd VSRC_4S_C0_0, VSRC_4S_C0_0, VBASIS_4S_DUP_0
@@ -211,10 +235,14 @@ __RELU:
     prfm PSTL1STRM, [C, #16]
     RELU_MACRO VSRC_4S_C0_0
     RELU_MACRO VSRC_4S_C1_0
+    st1 {VSRC_4S_C0_0}, [C], N
     RELU_MACRO VSRC_4S_C2_0
+    st1 {VSRC_4S_C1_0}, [C], N
     RELU_MACRO VSRC_4S_C3_0
+    st1 {VSRC_4S_C2_0}, [C], N
+    st1 {VSRC_4S_C3_0}, [C]
 
-    b __STORE
+    b __END
 
 __RELU6:
     fmov VSIX_4S, #6.0
@@ -226,10 +254,14 @@ __RELU6:
     prfm PSTL1STRM, [C, #16]
     RELU6_MACRO VSRC_4S_C0_0
     RELU6_MACRO VSRC_4S_C1_0
+    st1 {VSRC_4S_C0_0}, [C], N
     RELU6_MACRO VSRC_4S_C2_0
+    st1 {VSRC_4S_C1_0}, [C], N
     RELU6_MACRO VSRC_4S_C3_0
+    st1 {VSRC_4S_C2_0}, [C], N
+    st1 {VSRC_4S_C3_0}, [C]
 
-    b __STORE
+    b __END
 
 __PRELU:
     cmp pPrelu, #0
@@ -256,8 +288,14 @@ __PRELU_BEG:
     prfm PSTL1STRM, [C, #16]
     PRELU_MACRO VSRC_4S_C0_0 VSRC_16B_C0_0 VSCALE_4S_0
     PRELU_MACRO VSRC_4S_C1_0 VSRC_16B_C1_0 VSCALE_4S_1
+    st1 {VSRC_4S_C0_0}, [C], N
     PRELU_MACRO VSRC_4S_C2_0 VSRC_16B_C2_0 VSCALE_4S_2
+    st1 {VSRC_4S_C1_0}, [C], N
     PRELU_MACRO VSRC_4S_C3_0 VSRC_16B_C3_0 VSCALE_4S_3
+    st1 {VSRC_4S_C2_0}, [C], N
+    st1 {VSRC_4S_C3_0}, [C]
+
+    b __END
 
 __STORE:
     st1 {VSRC_4S_C0_0}, [C], N

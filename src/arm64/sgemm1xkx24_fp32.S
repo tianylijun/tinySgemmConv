@@ -214,7 +214,29 @@ __KHAS1:
 __BASIS:
     cmp pBasis, #0
     beq __RELU
-     
+
+    cmp pPrelu, #0
+    bne __ONLY_BASIS
+
+    cmp reluType, #0
+    bne __ONLY_BASIS
+
+__BASIS_STORE:
+    ld1r {VBASIS_4S_DUP_0}, [pBasis]
+
+    fadd VSRC_4S_C0_0, VSRC_4S_C0_0, VBASIS_4S_DUP_0
+    prfm PSTL1STRM, [C, #96]
+    fadd VSRC_4S_C0_1, VSRC_4S_C0_1, VBASIS_4S_DUP_0
+    fadd VSRC_4S_C0_2, VSRC_4S_C0_2, VBASIS_4S_DUP_0
+    fadd VSRC_4S_C0_3, VSRC_4S_C0_3, VBASIS_4S_DUP_0
+    fadd VSRC_4S_C0_4, VSRC_4S_C0_4, VBASIS_4S_DUP_0
+    st1 {VSRC_4S_C0_0, VSRC_4S_C0_1, VSRC_4S_C0_2, VSRC_4S_C0_3}, [C], #64
+    fadd VSRC_4S_C0_5, VSRC_4S_C0_5, VBASIS_4S_DUP_0
+    st1 {VSRC_4S_C0_4, VSRC_4S_C0_5}, [C]
+
+    b __END
+
+__ONLY_BASIS:
     ld1r {VBASIS_4S_DUP_0}, [pBasis]
 
     fadd VSRC_4S_C0_0, VSRC_4S_C0_0, VBASIS_4S_DUP_0
