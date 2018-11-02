@@ -29,6 +29,57 @@
 #include "sgemm.h"
 #include "pack.h"
 
+#ifdef SHOW_PRIORITY
+static int get_thread_policy( pthread_attr_t &attr )
+{
+    int policy;
+    int rs = pthread_attr_getschedpolicy( &attr, &policy );
+    assert( rs == 0 );
+    switch ( policy )
+    {
+    case SCHED_FIFO:
+        printf("policy = SCHED_FIFO\n");
+        break;
+
+    case SCHED_RR:
+        printf("policy = SCHED_RR\n");
+        break;
+
+    case SCHED_OTHER:
+        printf("policy = SCHED_OTHER\n");
+        break;
+
+    default:
+        printf("policy = UNKNOWN\n");
+        break;
+    }
+
+    return policy;
+}
+
+static void show_thread_priority( pthread_attr_t &attr, int policy )
+{
+    int priority = sched_get_priority_max( policy );
+    assert( priority != -1 );
+    printf("max_priority = %d", priority);
+
+    priority = sched_get_priority_min( policy );
+    assert( priority != -1 );
+    printf(" min_priority = %d\n", priority);
+}
+
+static int get_thread_priority( pthread_attr_t &attr )
+{
+    struct sched_param param;
+
+    int rs = pthread_attr_getschedparam( &attr, &param );
+    assert( rs == 0 );
+    printf("priority = %d\n", param.sched_priority);
+
+    return param.sched_priority;
+}
+#endif
+
 #ifdef DEBUG_AFFINETY
 static void showAffinty(struct thread_info *pThreadInfo)
 {
@@ -93,6 +144,14 @@ uint32_t getAvaiableCoresMaxFreq(uint32_t (*coreMaxFreqs)[MAX_CORE_NUMBER], uint
     return availCores;
 }
 
+void wakeUpJobs(struct tinySgemmConvCtx *pCtx)
+{
+    uint32_t i = 0;
+    assert(NULL != pCtx);
+    for(i = 0; i < pCtx->num_threads; i++)
+        pthread_cond_signal(&pCtx->pThreadInfo[i].msgQueueNoEmpty);
+}
+
 void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *jobsQueue)
 {
     assert(NULL != pCtx);
@@ -113,67 +172,104 @@ void waitForJobsDone(struct tinySgemmConvCtx *pCtx, struct list_head *jobsQueue)
     }
 }
 
-#ifdef SCHEDULE_BY_JOBS_NUM
-struct thread_info *getMinJobsNumThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
+static void sgemmProcessLeft(struct msg *pMsg, uint32_t leftN)
 {
-    struct thread_info *pThreadInfoRet = NULL;
-    uint64_t minJobsDoneNum = 0xffffffffffffffff;
-    struct list_head *pos;
-    assert(NULL != pHead);
-
-    pthread_mutex_lock(&pCtx->threadLock);
-    list_for_each(pos, pHead)
-    {
-        struct thread_info *pThreadInfo = list_entry(pos, struct thread_info, biglittlecorelist);
-        if (MSG_CMD_SGEMM == cmd)
-        {
-            if (pThreadInfo->sgemmJobsDoneNum < minJobsDoneNum)
-            {
-                minJobsDoneNum = pThreadInfo->sgemmJobsDoneNum;
-                pThreadInfoRet = pThreadInfo;
-            }
-        }
-        else if (MSG_CMD_IM2COL == cmd)
-        {
-            if (pThreadInfo->im2colJobsDoneNum < minJobsDoneNum)
-            {
-                minJobsDoneNum = pThreadInfo->im2colJobsDoneNum;
-                pThreadInfoRet = pThreadInfo;
-            }
-        }
-    }
-    if (MSG_CMD_SGEMM == cmd)
-        pThreadInfoRet->sgemmJobsDoneNum++;
-    else if (MSG_CMD_IM2COL == cmd)
-        pThreadInfoRet->im2colJobsDoneNum++;
-    pthread_mutex_unlock(&pCtx->threadLock);
-    return pThreadInfoRet;
-}
-#else
-struct thread_info *getMinTimeThread(struct tinySgemmConvCtx *pCtx, struct list_head *pHead, enum MSG_CMD cmd)
-{
-    struct thread_info *pThreadInfoRet = NULL;
-    uint64_t minTime = 0xffffffffffffffff;
-    struct list_head *pos;
-    assert(NULL != pHead);
-
-    (void)cmd;
-    pthread_mutex_lock(&pCtx->threadLock);
-    list_for_each(pos, pHead)
-    {
-        struct thread_info *pThreadInfo = list_entry(pos, struct thread_info, biglittlecorelist);
-        //uint64_t curThreadTime = pThreadInfo->totalMsgTime[cmd];
-        uint64_t totalMsgTime = pThreadInfo->totalMsgTime[0];
-        if (totalMsgTime < minTime)
-        {
-            minTime = totalMsgTime;
-            pThreadInfoRet = pThreadInfo;
-        }
-    }
-    pthread_mutex_unlock(&pCtx->threadLock);
-    return pThreadInfoRet;
-}
+    uint32_t NHas8, NHas4, NHas2, NHas1, K;
+#ifdef __aarch64__
+    uint32_t NHas16;
+    NHas16 = (leftN>>4)&1;
 #endif
+    NHas8  = (leftN>>3)&1;
+    NHas4  = (leftN>>2)&1;
+    NHas2  = (leftN>>1)&1;
+    NHas1  = leftN&1;
+    K      = pMsg->JobInfo.sgemmInfo.K;
+
+    if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+    {
+        /* packB K*leftN */
+        tinySgemmConvPackBLeftN_fp32_fp32((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
+
+#ifdef __aarch64__
+        if (NHas16)
+        {
+            sgemmMxKx16_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                              (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                              pMsg->JobInfo.sgemmInfo.pC,
+                              pMsg->JobInfo.sgemmInfo.M,
+                              pMsg->JobInfo.sgemmInfo.N,
+                              pMsg->JobInfo.sgemmInfo.K,
+                              (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
+                              pMsg->JobInfo.sgemmInfo.pPrelu,
+                              pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                              pMsg->JobInfo.sgemmInfo.pBasis);
+            pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 16*K);
+            pMsg->JobInfo.sgemmInfo.pC += 16;
+        }
+#endif
+        if (NHas8)
+        {
+            sgemmMxKx8_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                             (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                             pMsg->JobInfo.sgemmInfo.pC,
+                             pMsg->JobInfo.sgemmInfo.M,
+                             pMsg->JobInfo.sgemmInfo.N,
+                             pMsg->JobInfo.sgemmInfo.K,
+                             (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
+                             pMsg->JobInfo.sgemmInfo.pPrelu,
+                             pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                             pMsg->JobInfo.sgemmInfo.pBasis);
+            pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 8*K);
+            pMsg->JobInfo.sgemmInfo.pC += 8;
+        }
+
+        if (NHas4)
+        {
+            sgemmMxKx4_fp32  ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                              (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                              pMsg->JobInfo.sgemmInfo.pC,
+                              pMsg->JobInfo.sgemmInfo.M,
+                              pMsg->JobInfo.sgemmInfo.N,
+                              pMsg->JobInfo.sgemmInfo.K,
+                              (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
+                              pMsg->JobInfo.sgemmInfo.pPrelu,
+                              pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                              pMsg->JobInfo.sgemmInfo.pBasis);
+            pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 4*K);
+            pMsg->JobInfo.sgemmInfo.pC += 4;
+        }
+
+        if (NHas2)
+        {
+            sgemmMxKx2_fp32  ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                              (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                              pMsg->JobInfo.sgemmInfo.pC,
+                              pMsg->JobInfo.sgemmInfo.M,
+                              pMsg->JobInfo.sgemmInfo.N,
+                              pMsg->JobInfo.sgemmInfo.K,
+                              (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
+                              pMsg->JobInfo.sgemmInfo.pPrelu,
+                              pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                              pMsg->JobInfo.sgemmInfo.pBasis);
+            pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 2*K);
+            pMsg->JobInfo.sgemmInfo.pC += 2;
+        }
+
+        if (NHas1)
+        {
+            sgemmMxKx1_fp32  ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                              (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                              pMsg->JobInfo.sgemmInfo.pC,
+                              pMsg->JobInfo.sgemmInfo.M,
+                              pMsg->JobInfo.sgemmInfo.N,
+                              pMsg->JobInfo.sgemmInfo.K,
+                              (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
+                              pMsg->JobInfo.sgemmInfo.pPrelu,
+                              pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                              pMsg->JobInfo.sgemmInfo.pBasis);
+        }
+    }
+}
 
 void * sgemm_thread_process(void *args)
 {
@@ -220,10 +316,6 @@ void * sgemm_thread_process(void *args)
             printf("Warning:: skip set thread %d affinity(0x%x), as core not avaiable\n", pThreadInfo->index, pThreadInfo->affinity);
     }
 
-#ifdef DEBUG_AFFINETY
-    showAffinty(pThreadInfo);
-#endif
-
     INIT_LIST_HEAD(&pThreadInfo->msgQueueList);
     ret = pthread_mutex_init(&pThreadInfo->msgQueueLock, NULL);
     if (0 != ret)
@@ -238,193 +330,96 @@ void * sgemm_thread_process(void *args)
         pthread_mutex_destroy(&pThreadInfo->msgQueueLock);
         return NULL;
     }
-    printf("thread %d start\n", pThreadInfo->index);
+
     pThreadInfo->status = 1;
+
+#ifdef DEBUG_AFFINETY
+    showAffinty(pThreadInfo);
+#endif
+
+#ifdef SHOW_PRIORITY
+    pthread_attr_t attr;
+    int rs = pthread_attr_init( &attr );
+    assert( rs == 0 );
+    int policy = get_thread_policy( attr );
+    show_thread_priority( attr, policy );
+    get_thread_priority( attr );
+#endif
 
     while(deadloop)
     {
         struct msg *pMsg = rcvMsg(pThreadInfo);
         assert(NULL != pMsg);
         pMsg->status = MSG_STATUS_BUSY;
-#ifdef HREAD_STASTIC_INFO_ENABLE
-        pMsg->timeStampBeg = timestamp();
-#endif
+
         //printf("[%llu] thread [%d][%d] rcvMsg %s\n", pMsg->sequenceId, pThreadInfo->index, list_number(&pThreadInfo->msgQueueList), MSG2STR(pMsg->cmd));
         switch(pMsg->cmd)
         {
         case MSG_CMD_SGEMM:
-            /* call sgemm finish the job */
-            if (TINY_SGEMM_UNIT_N == pMsg->JobInfo.sgemmInfo.n)
+        {
+            uint32_t mutiUintN = pMsg->JobInfo.sgemmInfo.n / TINY_SGEMM_UNIT_N;
+            uint32_t leftN = pMsg->JobInfo.sgemmInfo.n % TINY_SGEMM_UNIT_N;
+            //printf("[%d] %d %d [%d]\n", pThreadInfo->index, mutiUintN, leftN, pMsg->JobInfo.sgemmInfo.n);
+            for (uint32_t i = 0 ; i < mutiUintN; i++)
             {
-                /* do TINY_SGEMM_UNIT_M * K * TINY_SGEMM_UNIT_N */
-                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType &&
-                        FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
-                {
-                    /* do sgemm */
 #ifdef __aarch64__
-                    tinySgemmConvPackB4x24_fp32_fp32_unit((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
+                tinySgemmConvPackB4x24_fp32_fp32_unit((float *)pMsg->JobInfo.sgemmInfo.pBIm2col + i*TINY_SGEMM_UNIT_N,
+                                                      (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                                      pMsg->JobInfo.sgemmInfo.K,
+                                                      pMsg->JobInfo.sgemmInfo.N);
 
-                    sgemmMxKx24_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
-                                      (float *)pMsg->JobInfo.sgemmInfo.pPackB,
-                                      pMsg->JobInfo.sgemmInfo.pC,
-                                      pMsg->JobInfo.sgemmInfo.M,
-                                      pMsg->JobInfo.sgemmInfo.N,
-                                      pMsg->JobInfo.sgemmInfo.K,
-                                      (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
-                                      pMsg->JobInfo.sgemmInfo.pPrelu,
-                                      pMsg->JobInfo.sgemmInfo.bSharedPrelu,
-                                      pMsg->JobInfo.sgemmInfo.pBasis);
+                sgemmMxKx24_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                                  (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                  pMsg->JobInfo.sgemmInfo.pC + i*TINY_SGEMM_UNIT_N,
+                                  pMsg->JobInfo.sgemmInfo.M,
+                                  pMsg->JobInfo.sgemmInfo.N,
+                                  pMsg->JobInfo.sgemmInfo.K,
+                                  (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
+                                  pMsg->JobInfo.sgemmInfo.pPrelu,
+                                  pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                                  pMsg->JobInfo.sgemmInfo.pBasis);
 #else
-                    tinySgemmConvPackB4x12_fp32_fp32_unit((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
+                if (0 == (pMsg->JobInfo.sgemmInfo.N%4))
+                    tinySgemmConvPackB4x12_fp32_fp32_unit_align((float *)pMsg->JobInfo.sgemmInfo.pBIm2col + i*TINY_SGEMM_UNIT_N,
+                            (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                            pMsg->JobInfo.sgemmInfo.K,
+                            pMsg->JobInfo.sgemmInfo.N);
+                else
+                    tinySgemmConvPackB4x12_fp32_fp32_unit((float *)pMsg->JobInfo.sgemmInfo.pBIm2col + i*TINY_SGEMM_UNIT_N,
+                                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                                          pMsg->JobInfo.sgemmInfo.K,
+                                                          pMsg->JobInfo.sgemmInfo.N);
 
-                    sgemmMxKx12_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
-                                      (float *)pMsg->JobInfo.sgemmInfo.pPackB,
-                                      pMsg->JobInfo.sgemmInfo.pC,
-                                      pMsg->JobInfo.sgemmInfo.M,
-                                      pMsg->JobInfo.sgemmInfo.N,
-                                      pMsg->JobInfo.sgemmInfo.K,
-                                      (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
-                                      pMsg->JobInfo.sgemmInfo.pPrelu,
-                                      pMsg->JobInfo.sgemmInfo.bSharedPrelu,
-                                      pMsg->JobInfo.sgemmInfo.pBasis);
+                sgemmMxKx12_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
+                                  (float *)pMsg->JobInfo.sgemmInfo.pPackB,
+                                  pMsg->JobInfo.sgemmInfo.pC + i*TINY_SGEMM_UNIT_N,
+                                  pMsg->JobInfo.sgemmInfo.M,
+                                  pMsg->JobInfo.sgemmInfo.N,
+                                  pMsg->JobInfo.sgemmInfo.K,
+                                  (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
+                                  pMsg->JobInfo.sgemmInfo.pPrelu,
+                                  pMsg->JobInfo.sgemmInfo.bSharedPrelu,
+                                  pMsg->JobInfo.sgemmInfo.pBasis);
 #endif
-
-                }
-                else if (FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
-                {
-                    /* code */
-                }
-                else if (INT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && INT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
-                {
-                    /* code */
-                }
-                else if (INT8_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && INT8_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
-                {
-                    /* code */
-                }
             }
-            else
+
+            if (0 != leftN)
             {
-                uint32_t NHas8, NHas4, NHas2, NHas1, K, leftN;
-#ifdef __aarch64__
-                uint32_t NHas16;
-#endif
-                leftN  = pMsg->JobInfo.sgemmInfo.n;
-                K      = pMsg->JobInfo.sgemmInfo.K;
-#ifdef __aarch64__
-                NHas16 = (leftN>>4)&1;
-#endif
-                NHas8  = (leftN>>3)&1;
-                NHas4  = (leftN>>2)&1;
-                NHas2  = (leftN>>1)&1;
-                NHas1  = leftN&1;
-
-                //printf("----- %s %d [%d]------\n", __func__, __LINE__, pMsg->JobInfo.sgemmInfo.n);
-
-                /* do TINY_SGEMM_UNIT_M * K * leftN */
-                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packADataType &&
-                        FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
-                {
-                    /* packB K*leftN */
-                    tinySgemmConvPackBLeftN_fp32_fp32((float *)pMsg->JobInfo.sgemmInfo.pBIm2col, (float *)pMsg->JobInfo.sgemmInfo.pPackB, pMsg->JobInfo.sgemmInfo.K, pMsg->JobInfo.sgemmInfo.N);
-#ifdef __aarch64__
-                    //printf("---- %s %d [%d %d %d %d %d]------\n", __func__, __LINE__, NHas16, NHas8, NHas4, NHas2, NHas1);
-                    /* do sgemm */
-                    if (NHas16)
-                    {
-                        sgemmMxKx16_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
-                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
-                                          pMsg->JobInfo.sgemmInfo.pC,
-                                          pMsg->JobInfo.sgemmInfo.M,
-                                          pMsg->JobInfo.sgemmInfo.N,
-                                          pMsg->JobInfo.sgemmInfo.K,
-                                          (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
-                                          pMsg->JobInfo.sgemmInfo.pPrelu,
-                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
-                                          pMsg->JobInfo.sgemmInfo.pBasis);
-                        pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 16*K);
-                        pMsg->JobInfo.sgemmInfo.pC += 16;
-                    }
-#else
-                    //printf("---- %s %d [%d %d %d %d]------\n", __func__, __LINE__, NHas8, NHas4, NHas2, NHas1);
-#endif
-                    if (NHas8)
-                    {
-                        sgemmMxKx8_fp32 ((float *)pMsg->JobInfo.sgemmInfo.pA,
-                                         (float *)pMsg->JobInfo.sgemmInfo.pPackB,
-                                         pMsg->JobInfo.sgemmInfo.pC,
-                                         pMsg->JobInfo.sgemmInfo.M,
-                                         pMsg->JobInfo.sgemmInfo.N,
-                                         pMsg->JobInfo.sgemmInfo.K,
-                                         (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
-                                         pMsg->JobInfo.sgemmInfo.pPrelu,
-                                         pMsg->JobInfo.sgemmInfo.bSharedPrelu,
-                                         pMsg->JobInfo.sgemmInfo.pBasis);
-                        pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 8*K);
-                        pMsg->JobInfo.sgemmInfo.pC += 8;
-                    }
-
-                    if (NHas4)
-                    {
-                        sgemmMxKx4_fp32  ((float *)pMsg->JobInfo.sgemmInfo.pA,
-                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
-                                          pMsg->JobInfo.sgemmInfo.pC,
-                                          pMsg->JobInfo.sgemmInfo.M,
-                                          pMsg->JobInfo.sgemmInfo.N,
-                                          pMsg->JobInfo.sgemmInfo.K,
-                                          (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
-                                          pMsg->JobInfo.sgemmInfo.pPrelu,
-                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
-                                          pMsg->JobInfo.sgemmInfo.pBasis);
-                        pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 4*K);
-                        pMsg->JobInfo.sgemmInfo.pC += 4;
-                    }
-
-                    if (NHas2)
-                    {
-                        sgemmMxKx2_fp32  ((float *)pMsg->JobInfo.sgemmInfo.pA,
-                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
-                                          pMsg->JobInfo.sgemmInfo.pC,
-                                          pMsg->JobInfo.sgemmInfo.M,
-                                          pMsg->JobInfo.sgemmInfo.N,
-                                          pMsg->JobInfo.sgemmInfo.K,
-                                          (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
-                                          pMsg->JobInfo.sgemmInfo.pPrelu,
-                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
-                                          pMsg->JobInfo.sgemmInfo.pBasis);
-                        pMsg->JobInfo.sgemmInfo.pPackB = (uint8_t *)((float *)pMsg->JobInfo.sgemmInfo.pPackB + 2*K);
-                        pMsg->JobInfo.sgemmInfo.pC += 2;
-                    }
-
-                    if (NHas1)
-                    {
-                        sgemmMxKx1_fp32  ((float *)pMsg->JobInfo.sgemmInfo.pA,
-                                          (float *)pMsg->JobInfo.sgemmInfo.pPackB,
-                                          pMsg->JobInfo.sgemmInfo.pC,
-                                          pMsg->JobInfo.sgemmInfo.M,
-                                          pMsg->JobInfo.sgemmInfo.N,
-                                          pMsg->JobInfo.sgemmInfo.K,
-                                          (uint32_t)pMsg->JobInfo.sgemmInfo.reluType,
-                                          pMsg->JobInfo.sgemmInfo.pPrelu,
-                                          pMsg->JobInfo.sgemmInfo.bSharedPrelu,
-                                          pMsg->JobInfo.sgemmInfo.pBasis);
-                    }
-                }
-                else if (FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
-                {
-                    /* code */
-                }
-                else if (INT16_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && INT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
-                {
-                    /* code */
-                }
-                else if (INT8_TYPE == pMsg->JobInfo.sgemmInfo.packADataType && INT8_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
-                {
-                    /* code */
-                }
+                uint32_t packBTypeSize;
+                if (FLOAT32_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType)
+                    packBTypeSize = sizeof(float);
+                else if ((FLOAT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType) || (INT16_TYPE == pMsg->JobInfo.sgemmInfo.packBDataType))
+                    packBTypeSize = sizeof(uint16_t);
+                else
+                    packBTypeSize = sizeof(uint8_t);
+                pMsg->JobInfo.sgemmInfo.pC += mutiUintN*TINY_SGEMM_UNIT_N;
+                pMsg->JobInfo.sgemmInfo.pBIm2col += mutiUintN*TINY_SGEMM_UNIT_N*packBTypeSize;
+                sgemmProcessLeft(pMsg, leftN);
             }
             break;
+        }
         case MSG_CMD_IM2COL:
+        {
             if (FLOAT32_TYPE == pMsg->JobInfo.im2colInfo.outType)
             {
                 im2col_channel_fp32_fp32 (pMsg->JobInfo.im2colInfo.pB,      (float *)pMsg->JobInfo.im2colInfo.pBIm2col,
@@ -440,31 +435,21 @@ void * sgemm_thread_process(void *args)
                 printf("im2col data type %d not supported, %s %d\n", pMsg->JobInfo.im2colInfo.outType, __FILE__, __LINE__);
             }
             break;
+        }
         case MSG_CMD_EXIT:
+        {
             deadloop = 0;
             /* clear msg queue */
             INIT_LIST_HEAD(&pThreadInfo->msgQueueList);
             break;
+        }
         default:
+        {
             printf("Err: msg %s not process\n", MSG2STR(pMsg->cmd));
             break;
         }
-#ifdef HREAD_STASTIC_INFO_ENABLE
-        pMsg->timeStampEnd = timestamp();
-#endif
-
-#ifndef SCHEDULE_BY_JOBS_NUM
-        switch(pMsg->cmd)
-        {
-        case MSG_CMD_SGEMM:
-        case MSG_CMD_IM2COL:
-            //pThreadInfo->totalMsgTime[pMsg->cmd] += pMsg->timeStampEnd - pMsg->timeStampBeg;
-            pThreadInfo->totalMsgTime[0] += pMsg->timeStampEnd - pMsg->timeStampBeg;
-            break;
-        default:
-            break;
         }
-#endif
+
         pthread_mutex_lock(&pMsg->lock);
         pMsg->status = MSG_STATUS_DONE;
         pthread_cond_signal(&pMsg->jobDoneCondition);

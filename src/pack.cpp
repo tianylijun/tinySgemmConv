@@ -22,8 +22,11 @@
 #include "pack.h"
 
 extern "C" void tinySgemmConvPackB4x8_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N);
+extern "C" void tinySgemmConvPackB4x8_fp32_fp32_unit_align(float *pB, float *pPackB, uint32_t K, uint32_t N);
 extern "C" void tinySgemmConvPackB4x4_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N);
+extern "C" void tinySgemmConvPackB4x4_fp32_fp32_unit_align(float *pB, float *pPackB, uint32_t K, uint32_t N);
 extern "C" void tinySgemmConvPackB4x2_fp32_fp32_unit(float *pB, float *pPackB, uint32_t K, uint32_t N);
+extern "C" void tinySgemmConvPackB4x2_fp32_fp32_unit_align(float *pB, float *pPackB, uint32_t K, uint32_t N);
 
 void tinySgemmConvPackA4x4_fp32_fp32(float *pA, float *pPackA, uint32_t M, uint32_t K)
 {
@@ -159,50 +162,59 @@ static void tinySgemmConvPackB4x1_fp32_fp32_unit(float *pB, float *pPackB, uint3
 void tinySgemmConvPackBLeftN_fp32_fp32(float *pB, float *pPackB, uint32_t K, uint32_t N)
 {
     uint32_t leftN, leftNHas8, leftNHas4, leftNHas2, leftNHas1;
-#ifdef __aarch64__
-    uint32_t leftNHas16;
-#endif
+
     POINTER_CHECK_NO_RET(pB);
     POINTER_CHECK_NO_RET(pPackB);
 
     leftN      = N%TINY_SGEMM_UNIT_N;
-#ifdef __aarch64__
-    leftNHas16 = (leftN>>4)&1;
-#endif
     leftNHas8  = (leftN>>3)&1;
     leftNHas4  = (leftN>>2)&1;
     leftNHas2  = (leftN>>1)&1;
     leftNHas1  = leftN&1;
 
 #ifdef __aarch64__
-    //printf("---- %s %d [%d %d %d %d %d]------\n", __func__, __LINE__, leftNHas16, leftNHas8, leftNHas4, leftNHas2, leftNHas1);
+    uint32_t leftNHas16;
+    leftNHas16 = (leftN>>4)&1;
     if (leftNHas16)
     {
         tinySgemmConvPackB4x16_fp32_fp32_unit(pB, pPackB, K, N);
         pB     += 16;
         pPackB += 16*K;
     }
-#else
-    //printf("---- %s %d [%d %d %d %d]------\n", __func__, __LINE__, leftNHas8, leftNHas4, leftNHas2, leftNHas1);
 #endif
 
     if (leftNHas8)
     {
-        tinySgemmConvPackB4x8_fp32_fp32_unit(pB, pPackB, K, N);
+#ifndef __aarch64__
+        if (0 == (N%4))
+            tinySgemmConvPackB4x4_fp32_fp32_unit_align(pB, pPackB, K, N);
+        else
+#endif
+            tinySgemmConvPackB4x8_fp32_fp32_unit(pB, pPackB, K, N);
         pB     += 8;
         pPackB += 8*K;
     }
 
     if (leftNHas4)
     {
-        tinySgemmConvPackB4x4_fp32_fp32_unit(pB, pPackB, K, N);
+#ifndef __aarch64__
+        if (0 == (N%4))
+            tinySgemmConvPackB4x4_fp32_fp32_unit_align(pB, pPackB, K, N);
+        else
+#endif
+            tinySgemmConvPackB4x4_fp32_fp32_unit(pB, pPackB, K, N);
         pB     += 4;
         pPackB += 4*K;
     }
 
     if (leftNHas2)
     {
-        tinySgemmConvPackB4x2_fp32_fp32_unit(pB, pPackB, K, N);
+#ifndef __aarch64__
+        if (0 == (N%2))
+            tinySgemmConvPackB4x2_fp32_fp32_unit_align(pB, pPackB, K, N);
+        else
+#endif
+            tinySgemmConvPackB4x2_fp32_fp32_unit(pB, pPackB, K, N);
         pB     += 2;
         pPackB += 2*K;
     }

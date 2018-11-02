@@ -26,6 +26,11 @@
 //#define TIME_PRT
 //#define TIME_PRT_UINT
 
+extern "C" void sgemm4xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm4xKx8_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm4xKx4_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+
 #ifdef __aarch64__
 
 extern "C" void sgemm4xKx24_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
@@ -119,8 +124,13 @@ void sgemmMxKx16_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
 
 /* fp32 unit sgemm block is, A:4x4  B:4x12 C:4x12 */
 extern "C" void sgemm4xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm4xKx12_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+
 extern "C" void sgemm2xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm2xKx12_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+
 extern "C" void sgemm1xKx12_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
+extern "C" void sgemm1xKx12_fp32_align(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
 
 void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, uint32_t K, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
@@ -133,30 +143,61 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
     gettimeofday(&beg, NULL);
 #endif
 
-    for (uint32_t i = 0; i < MDiv4; ++i)
+    if (0 == (N%4))
     {
-        sgemm4xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
-        pA += 4*K;
-        pC += 4*N;
-        if ((NULL != pPrelu) && (!bSharedPrelu))
-            pPrelu += 4;
-        if (NULL != pBasis)
-            pBasis += 4;
+        for (uint32_t i = 0; i < MDiv4; ++i)
+        {
+            sgemm4xKx12_fp32_align(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+            pA += 4*K;
+            pC += 4*N;
+            if ((NULL != pPrelu) && (!bSharedPrelu))
+                pPrelu += 4;
+            if (NULL != pBasis)
+                pBasis += 4;
+        }
+
+        if (MHas2)
+        {
+            sgemm2xKx12_fp32_align(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+            pA += 2*K;
+            pC += 2*N;
+            if ((NULL != pPrelu) && (!bSharedPrelu))
+                pPrelu += 2;
+            if (NULL != pBasis)
+                pBasis += 2;
+        }
+
+        if (MHas1)
+            sgemm1xKx12_fp32_align(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+    }
+    else
+    {
+        for (uint32_t i = 0; i < MDiv4; ++i)
+        {
+            sgemm4xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+            pA += 4*K;
+            pC += 4*N;
+            if ((NULL != pPrelu) && (!bSharedPrelu))
+                pPrelu += 4;
+            if (NULL != pBasis)
+                pBasis += 4;
+        }
+
+        if (MHas2)
+        {
+            sgemm2xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+            pA += 2*K;
+            pC += 2*N;
+            if ((NULL != pPrelu) && (!bSharedPrelu))
+                pPrelu += 2;
+            if (NULL != pBasis)
+                pBasis += 2;
+        }
+
+        if (MHas1)
+            sgemm1xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
     }
 
-    if (MHas2)
-    {
-        sgemm2xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
-        pA += 2*K;
-        pC += 2*N;
-        if ((NULL != pPrelu) && (!bSharedPrelu))
-            pPrelu += 2;
-        if (NULL != pBasis)
-            pBasis += 2;
-    }
-
-    if (MHas1)
-        sgemm1xKx12_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
 #ifdef TIME_PRT_UINT
     gettimeofday(&end, NULL);
     printf("%s [%d %d %d %d] time: %f ms\n", __func__, MDiv4, MHas2, MHas1, K, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000.0);
@@ -164,8 +205,6 @@ void sgemmMxKx12_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, u
 }
 
 #endif
-
-extern "C" void sgemm4xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
 
 static void sgemm2xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
@@ -192,29 +231,63 @@ static void sgemm2xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         pCurB      += 16;
         vsrcA32x4x2 = vld1q_f32_x2(pCurA);
 
-        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[0], vsrcA32x4x2.val[0][0]);
+#ifdef __aarch64__
+        vsrcC32x4x2_0.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[0], vsrcA32x4x2.val[0], 0);
         ARM_LOAD_PREFETCH_64(pCurB);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[1], vsrcA32x4x2.val[0][0]);
-        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_0.val[0], vsrcA32x4x2.val[0][1]);
-        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_0.val[1], vsrcA32x4x2.val[0][1]);
+        vsrcC32x4x2_0.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[1], vsrcA32x4x2.val[0], 0);
 
-        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[2], vsrcA32x4x2.val[0][2]);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[3], vsrcA32x4x2.val[0][2]);
-        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_0.val[2], vsrcA32x4x2.val[0][3]);
+        vsrcC32x4x2_1.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_0.val[0], vsrcA32x4x2.val[0], 1);
+        vsrcC32x4x2_1.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_0.val[1], vsrcA32x4x2.val[0], 1);
+
+        vsrcC32x4x2_0.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[2], vsrcA32x4x2.val[0], 2);
+        vsrcC32x4x2_0.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[3], vsrcA32x4x2.val[0], 2);
+
+        vsrcC32x4x2_1.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_0.val[2], vsrcA32x4x2.val[0], 3);
         vsrcB32x4x4_1        = vld1q_f32_x4(pCurB);
-        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_0.val[3], vsrcA32x4x2.val[0][3]);
+        vsrcC32x4x2_1.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_0.val[3], vsrcA32x4x2.val[0], 3);
 
         ARM_LOAD_PREFETCH_64(pCurB+16);
-        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4x2.val[1][0]);
-        ARM_LOAD_PREFETCH_32(pCurA+8);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4x2.val[1][0]);
-        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4x2.val[1][1]);
-        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4x2.val[1][1]);
+        vsrcC32x4x2_0.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4x2.val[1], 0);
+        ARM_LOAD_PREFETCH_32(pCurA+8)
+        vsrcC32x4x2_0.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4x2.val[1], 0);
 
-        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[2], vsrcA32x4x2.val[1][2]);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[3], vsrcA32x4x2.val[1][2]);
-        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_1.val[2], vsrcA32x4x2.val[1][3]);
-        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_1.val[3], vsrcA32x4x2.val[1][3]);
+        vsrcC32x4x2_1.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4x2.val[1], 1);
+        vsrcC32x4x2_1.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4x2.val[1], 1);
+
+        vsrcC32x4x2_0.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[2], vsrcA32x4x2.val[1], 2);
+        vsrcC32x4x2_0.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[3], vsrcA32x4x2.val[1], 2);
+
+        vsrcC32x4x2_1.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_1.val[2], vsrcA32x4x2.val[1], 3);
+        vsrcC32x4x2_1.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_1.val[3], vsrcA32x4x2.val[1], 3);
+#else
+        vsrcC32x4x2_0.val[0] = vmlaq_lane_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[0], vget_low_f32(vsrcA32x4x2.val[0]), 0);
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x2_0.val[1] = vmlaq_lane_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[1], vget_low_f32(vsrcA32x4x2.val[0]), 0);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_lane_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_0.val[0], vget_low_f32(vsrcA32x4x2.val[0]), 1);
+        vsrcC32x4x2_1.val[1] = vmlaq_lane_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_0.val[1], vget_low_f32(vsrcA32x4x2.val[0]), 1);
+
+        vsrcC32x4x2_0.val[0] = vmlaq_lane_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[2], vget_high_f32(vsrcA32x4x2.val[0]), 0);
+        vsrcC32x4x2_0.val[1] = vmlaq_lane_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[3], vget_high_f32(vsrcA32x4x2.val[0]), 0);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_lane_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_0.val[2], vget_high_f32(vsrcA32x4x2.val[0]), 1);
+        vsrcB32x4x4_1        = vld1q_f32_x4(pCurB);
+        vsrcC32x4x2_1.val[1] = vmlaq_lane_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_0.val[3], vget_high_f32(vsrcA32x4x2.val[0]), 1);
+
+        ARM_LOAD_PREFETCH_64(pCurB+16);
+        vsrcC32x4x2_0.val[0] = vmlaq_lane_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[0], vget_low_f32(vsrcA32x4x2.val[1]), 0);
+        ARM_LOAD_PREFETCH_32(pCurA+8);
+        vsrcC32x4x2_0.val[1] = vmlaq_lane_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[1], vget_low_f32(vsrcA32x4x2.val[1]), 0);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_lane_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_1.val[0], vget_low_f32(vsrcA32x4x2.val[1]), 1);
+        vsrcC32x4x2_1.val[1] = vmlaq_lane_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_1.val[1], vget_low_f32(vsrcA32x4x2.val[1]), 1);
+
+        vsrcC32x4x2_0.val[0] = vmlaq_lane_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[2], vget_high_f32(vsrcA32x4x2.val[1]), 0);
+        vsrcC32x4x2_0.val[1] = vmlaq_lane_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[3], vget_high_f32(vsrcA32x4x2.val[1]), 0);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_lane_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4_1.val[2], vget_high_f32(vsrcA32x4x2.val[1]), 1);
+        vsrcC32x4x2_1.val[1] = vmlaq_lane_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4_1.val[3], vget_high_f32(vsrcA32x4x2.val[1]), 1);
+#endif
     }
 
     /* A:2x2 B:2x8 C:2x8 */
@@ -228,17 +301,33 @@ static void sgemm2xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcB32x4x4 = vld1q_f32_x4(pCurB);
         vsrcA32x4   = vld1q_f32(pCurA);
 
-        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4[0]);
-        ARM_LOAD_PREFETCH_32(pCurB+16);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4[0]);
+#ifdef __aarch64__
+        vsrcC32x4x2_0.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4.val[0], vsrcA32x4, 0);
+        ARM_LOAD_PREFETCH_64(pCurB+16);
+        vsrcC32x4x2_0.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4.val[1], vsrcA32x4, 0);
         ARM_LOAD_PREFETCH_16(pCurA+4);
-        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4[1]);
-        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4[1]);
+        vsrcC32x4x2_1.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4.val[0], vsrcA32x4, 1);
+        vsrcC32x4x2_1.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4.val[1], vsrcA32x4, 1);
 
-        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4.val[2], vsrcA32x4[2]);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4.val[3], vsrcA32x4[2]);
-        vsrcC32x4x2_1.val[0] = vmlaq_n_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4.val[2], vsrcA32x4[3]);
-        vsrcC32x4x2_1.val[1] = vmlaq_n_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4.val[3], vsrcA32x4[3]);
+        vsrcC32x4x2_0.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4.val[2], vsrcA32x4, 2);
+        vsrcC32x4x2_0.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4.val[3], vsrcA32x4, 2);
+
+        vsrcC32x4x2_1.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4.val[2], vsrcA32x4, 3);
+        vsrcC32x4x2_1.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4.val[3], vsrcA32x4, 3);
+#else
+        vsrcC32x4x2_0.val[0] = vmlaq_lane_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4.val[0], vget_low_f32(vsrcA32x4), 0);
+        ARM_LOAD_PREFETCH_64(pCurB+16);
+        vsrcC32x4x2_0.val[1] = vmlaq_lane_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4.val[1], vget_low_f32(vsrcA32x4), 0);
+        ARM_LOAD_PREFETCH_16(pCurA+4);
+        vsrcC32x4x2_1.val[0] = vmlaq_lane_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4.val[0], vget_low_f32(vsrcA32x4), 1);
+        vsrcC32x4x2_1.val[1] = vmlaq_lane_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4.val[1], vget_low_f32(vsrcA32x4), 1);
+
+        vsrcC32x4x2_0.val[0] = vmlaq_lane_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4.val[2], vget_high_f32(vsrcA32x4), 0);
+        vsrcC32x4x2_0.val[1] = vmlaq_lane_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4.val[3], vget_high_f32(vsrcA32x4), 0);
+
+        vsrcC32x4x2_1.val[0] = vmlaq_lane_f32(vsrcC32x4x2_1.val[0], vsrcB32x4x4.val[2], vget_high_f32(vsrcA32x4), 1);
+        vsrcC32x4x2_1.val[1] = vmlaq_lane_f32(vsrcC32x4x2_1.val[1], vsrcB32x4x4.val[3], vget_high_f32(vsrcA32x4), 1);
+#endif
     }
 
     /* A:2x1 B:1x8 C:2x8 */
@@ -347,27 +436,46 @@ static void sgemm1xKx8_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     {
         float *pCurB = pB+i*32;
         float *pCurA = pA+i*4;
-        float32x4_t vsrcA32x4;                    /* 2 registers */
+        float32x4_t vsrcA32x4;                      /* 2 registers */
         float32x4x4_t vsrcB32x4x4_0, vsrcB32x4x4_1; /* 8 registers */
 
         vsrcB32x4x4_0 = vld1q_f32_x4(pCurB);
         pCurB      += 16;
         vsrcA32x4  = vld1q_f32(pCurA);
 
-        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[0], vsrcA32x4[0]);
+#ifdef __aarch64__
+        vsrcC32x4x2_0.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[0], vsrcA32x4, 0);
         ARM_LOAD_PREFETCH_64(pCurB);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[1], vsrcA32x4[0]);
-        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[2], vsrcA32x4[1]);
+        vsrcC32x4x2_0.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[1], vsrcA32x4, 0);
+
+        vsrcC32x4x2_0.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[2], vsrcA32x4, 1);
         vsrcB32x4x4_1        = vld1q_f32_x4(pCurB);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[3], vsrcA32x4[1]);
+        vsrcC32x4x2_0.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[3], vsrcA32x4, 1);
 
         ARM_LOAD_PREFETCH_64(pCurB+16);
-        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4[2]);
+        vsrcC32x4x2_0.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[0], vsrcA32x4, 2);
         ARM_LOAD_PREFETCH_16(pCurA+4);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4[2]);
+        vsrcC32x4x2_0.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[1], vsrcA32x4, 2);
 
-        vsrcC32x4x2_0.val[0] = vmlaq_n_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[2], vsrcA32x4[3]);
-        vsrcC32x4x2_0.val[1] = vmlaq_n_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[3], vsrcA32x4[3]);
+        vsrcC32x4x2_0.val[0] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[2], vsrcA32x4, 3);
+        vsrcC32x4x2_0.val[1] = vfmaq_laneq_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[3], vsrcA32x4, 3);
+#else
+        vsrcC32x4x2_0.val[0] = vmlaq_lane_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[0], vget_low_f32(vsrcA32x4), 0);
+        ARM_LOAD_PREFETCH_64(pCurB);
+        vsrcC32x4x2_0.val[1] = vmlaq_lane_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[1], vget_low_f32(vsrcA32x4), 0);
+
+        vsrcC32x4x2_0.val[0] = vmlaq_lane_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_0.val[2], vget_low_f32(vsrcA32x4), 1);
+        vsrcB32x4x4_1        = vld1q_f32_x4(pCurB);
+        vsrcC32x4x2_0.val[1] = vmlaq_lane_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_0.val[3], vget_low_f32(vsrcA32x4), 1);
+
+        ARM_LOAD_PREFETCH_64(pCurB+16);
+        vsrcC32x4x2_0.val[0] = vmlaq_lane_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[0], vget_high_f32(vsrcA32x4), 0);
+        ARM_LOAD_PREFETCH_16(pCurA+4);
+        vsrcC32x4x2_0.val[1] = vmlaq_lane_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[1], vget_high_f32(vsrcA32x4), 0);
+
+        vsrcC32x4x2_0.val[0] = vmlaq_lane_f32(vsrcC32x4x2_0.val[0], vsrcB32x4x4_1.val[2], vget_high_f32(vsrcA32x4), 1);
+        vsrcC32x4x2_0.val[1] = vmlaq_lane_f32(vsrcC32x4x2_0.val[1], vsrcB32x4x4_1.val[3], vget_high_f32(vsrcA32x4), 1);
+#endif
     }
 
     /* A:1x2 B:2x8 C:1x8 */
@@ -463,15 +571,33 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     gettimeofday(&beg, NULL);
 #endif
 
-    for (uint32_t i = 0; i < MDiv4; ++i)
+#ifndef __aarch64__
+    if (0 == (N%4))
     {
-        sgemm4xKx8_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
-        pA += 4*K;
-        pC += 4*N;
-        if ((NULL != pPrelu) && (!bSharedPrelu))
-            pPrelu += 4;
-        if (NULL != pBasis)
-            pBasis += 4;
+        for (uint32_t i = 0; i < MDiv4; ++i)
+        {
+            sgemm4xKx8_fp32_align(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+            pA += 4*K;
+            pC += 4*N;
+            if ((NULL != pPrelu) && (!bSharedPrelu))
+                pPrelu += 4;
+            if (NULL != pBasis)
+                pBasis += 4;
+        }
+    }
+    else
+#endif
+    {
+        for (uint32_t i = 0; i < MDiv4; ++i)
+        {
+            sgemm4xKx8_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+            pA += 4*K;
+            pC += 4*N;
+            if ((NULL != pPrelu) && (!bSharedPrelu))
+                pPrelu += 4;
+            if (NULL != pBasis)
+                pBasis += 4;
+        }
     }
 
     if (MHas2)
@@ -492,8 +618,6 @@ void sgemmMxKx8_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     printf("%s [%d %d %d %d] time: %f ms\n", __func__, MDiv4, MHas2, MHas1, K, (end.tv_sec*1000000 + end.tv_usec - beg.tv_sec*1000000 - beg.tv_usec)/1000.0);
 #endif
 }
-
-extern "C" void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis);
 
 static void sgemm2xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis)
 {
@@ -517,17 +641,32 @@ static void sgemm2xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
 
         vsrcB32x4x4 = vld1q_f32_x4(pCurB);
         vsrcA32x4x2 = vld1q_f32_x2(pCurA);
-        vsrcC32x4x2.val[0] = vmlaq_n_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0][0]);
-        ARM_LOAD_PREFETCH_64(pCurB+16);
-        vsrcC32x4x2.val[1] = vmlaq_n_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0][1]);
-        ARM_LOAD_PREFETCH_32(pCurA+8);
-        vsrcC32x4x2.val[0] = vmlaq_n_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0][2]);
-        vsrcC32x4x2.val[1] = vmlaq_n_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0][3]);
 
-        vsrcC32x4x2.val[0] = vmlaq_n_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][0]);
-        vsrcC32x4x2.val[1] = vmlaq_n_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1][1]);
-        vsrcC32x4x2.val[0] = vmlaq_n_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][2]);
-        vsrcC32x4x2.val[1] = vmlaq_n_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1][3]);
+#ifdef __aarch64__
+        vsrcC32x4x2.val[0] = vfmaq_laneq_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0], 0);
+        ARM_LOAD_PREFETCH_64(pCurB+16);
+        vsrcC32x4x2.val[1] = vfmaq_laneq_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[0], vsrcA32x4x2.val[0], 1);
+        ARM_LOAD_PREFETCH_32(pCurA+8);
+        vsrcC32x4x2.val[0] = vfmaq_laneq_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0], 2);
+        vsrcC32x4x2.val[1] = vfmaq_laneq_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[1], vsrcA32x4x2.val[0], 3);
+
+        vsrcC32x4x2.val[0] = vfmaq_laneq_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1], 0);
+        vsrcC32x4x2.val[1] = vfmaq_laneq_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[2], vsrcA32x4x2.val[1], 1);
+        vsrcC32x4x2.val[0] = vfmaq_laneq_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1], 2);
+        vsrcC32x4x2.val[1] = vfmaq_laneq_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[3], vsrcA32x4x2.val[1], 3);
+#else
+        vsrcC32x4x2.val[0] = vmlaq_lane_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[0], vget_low_f32(vsrcA32x4x2.val[0]), 0);
+        ARM_LOAD_PREFETCH_64(pCurB+16);
+        vsrcC32x4x2.val[1] = vmlaq_lane_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[0], vget_low_f32(vsrcA32x4x2.val[0]), 1);
+        ARM_LOAD_PREFETCH_32(pCurA+8);
+        vsrcC32x4x2.val[0] = vmlaq_lane_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[1], vget_high_f32(vsrcA32x4x2.val[0]), 0);
+        vsrcC32x4x2.val[1] = vmlaq_lane_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[1], vget_high_f32(vsrcA32x4x2.val[0]), 1);
+
+        vsrcC32x4x2.val[0] = vmlaq_lane_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[2], vget_low_f32(vsrcA32x4x2.val[1]), 0);
+        vsrcC32x4x2.val[1] = vmlaq_lane_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[2], vget_low_f32(vsrcA32x4x2.val[1]), 1);
+        vsrcC32x4x2.val[0] = vmlaq_lane_f32(vsrcC32x4x2.val[0], vsrcB32x4x4.val[3], vget_high_f32(vsrcA32x4x2.val[1]), 0);
+        vsrcC32x4x2.val[1] = vmlaq_lane_f32(vsrcC32x4x2.val[1], vsrcB32x4x4.val[3], vget_high_f32(vsrcA32x4x2.val[1]), 1);
+#endif
     }
 
     /* A:2x2 B:2x4 C:2x4 */
@@ -642,11 +781,20 @@ static void sgemm1xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
 
         vsrcB32x4x4 = vld1q_f32_x4(pCurB);
         vsrcA32x4 = vld1q_f32(pCurA);
-        vsrcC32x4 = vmlaq_n_f32(vsrcC32x4, vsrcB32x4x4.val[0], vsrcA32x4[0]);
+
+#ifdef __aarch64__
+        vsrcC32x4 = vfmaq_laneq_f32(vsrcC32x4, vsrcB32x4x4.val[0], vsrcA32x4, 0);
         ARM_LOAD_PREFETCH_64(pCurB+16);
-        vsrcC32x4 = vmlaq_n_f32(vsrcC32x4, vsrcB32x4x4.val[1], vsrcA32x4[1]);
-        vsrcC32x4 = vmlaq_n_f32(vsrcC32x4, vsrcB32x4x4.val[2], vsrcA32x4[2]);
-        vsrcC32x4 = vmlaq_n_f32(vsrcC32x4, vsrcB32x4x4.val[3], vsrcA32x4[3]);
+        vsrcC32x4 = vfmaq_laneq_f32(vsrcC32x4, vsrcB32x4x4.val[1], vsrcA32x4, 1);
+        vsrcC32x4 = vfmaq_laneq_f32(vsrcC32x4, vsrcB32x4x4.val[2], vsrcA32x4, 2);
+        vsrcC32x4 = vfmaq_laneq_f32(vsrcC32x4, vsrcB32x4x4.val[3], vsrcA32x4, 3);
+#else
+        vsrcC32x4 = vmlaq_lane_f32(vsrcC32x4, vsrcB32x4x4.val[0], vget_low_f32(vsrcA32x4), 0);
+        ARM_LOAD_PREFETCH_64(pCurB+16);
+        vsrcC32x4 = vmlaq_lane_f32(vsrcC32x4, vsrcB32x4x4.val[1], vget_low_f32(vsrcA32x4), 1);
+        vsrcC32x4 = vmlaq_lane_f32(vsrcC32x4, vsrcB32x4x4.val[2], vget_high_f32(vsrcA32x4), 0);
+        vsrcC32x4 = vmlaq_lane_f32(vsrcC32x4, vsrcB32x4x4.val[3], vget_high_f32(vsrcA32x4), 1);
+#endif
     }
 
     /* A:1x2 B:2x4 C:1x4 */
@@ -728,15 +876,33 @@ void sgemmMxKx4_fp32(float *pA, float *pB, float *pC, uint32_t M, uint32_t N, ui
     gettimeofday(&beg, NULL);
 #endif
 
-    for (uint32_t i = 0; i < MDiv4; ++i)
+#ifndef __aarch64__
+    if (0 == (N%4))
     {
-        sgemm4xKx4_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
-        pA += 4*K;
-        pC += 4*N;
-        if ((NULL != pPrelu) && (!bSharedPrelu))
-            pPrelu += 4;
-        if (NULL != pBasis)
-            pBasis += 4;
+        for (uint32_t i = 0; i < MDiv4; ++i)
+        {
+            sgemm4xKx4_fp32_align(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+            pA += 4*K;
+            pC += 4*N;
+            if ((NULL != pPrelu) && (!bSharedPrelu))
+                pPrelu += 4;
+            if (NULL != pBasis)
+                pBasis += 4;
+        }
+    }
+    else
+#endif
+    {
+        for (uint32_t i = 0; i < MDiv4; ++i)
+        {
+            sgemm4xKx4_fp32(pA, pB, pC, K, N, reluType, pPrelu, bSharedPrelu, pBasis);
+            pA += 4*K;
+            pC += 4*N;
+            if ((NULL != pPrelu) && (!bSharedPrelu))
+                pPrelu += 4;
+            if (NULL != pBasis)
+                pBasis += 4;
+        }
     }
 
     if (MHas2)
@@ -782,27 +948,52 @@ static void sgemm4xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
 
         vsrcB32x2x4 = vld1_f32_x4(pCurB);
         vsrcA32x4x4 = vld1q_f32_x4(pCurA);
-        vsrcC32x2x4.val[0] = vmla_n_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[0], vsrcA32x4x4.val[0][0]);
+
+#ifdef __aarch64__
+        vsrcC32x2x4.val[0] = vfma_laneq_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[0], vsrcA32x4x4.val[0], 0);
         ARM_LOAD_PREFETCH_64(pCurA+16);
-        vsrcC32x2x4.val[1] = vmla_n_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[0], vsrcA32x4x4.val[0][1]);
+        vsrcC32x2x4.val[1] = vfma_laneq_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[0], vsrcA32x4x4.val[0], 1);
         ARM_LOAD_PREFETCH_32(pCurB+8);
-        vsrcC32x2x4.val[2] = vmla_n_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[0], vsrcA32x4x4.val[0][2]);
-        vsrcC32x2x4.val[3] = vmla_n_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[0], vsrcA32x4x4.val[0][3]);
+        vsrcC32x2x4.val[2] = vfma_laneq_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[0], vsrcA32x4x4.val[0], 2);
+        vsrcC32x2x4.val[3] = vfma_laneq_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[0], vsrcA32x4x4.val[0], 3);
 
-        vsrcC32x2x4.val[0] = vmla_n_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[1], vsrcA32x4x4.val[1][0]);
-        vsrcC32x2x4.val[1] = vmla_n_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[1], vsrcA32x4x4.val[1][1]);
-        vsrcC32x2x4.val[2] = vmla_n_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[1], vsrcA32x4x4.val[1][2]);
-        vsrcC32x2x4.val[3] = vmla_n_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[1], vsrcA32x4x4.val[1][3]);
+        vsrcC32x2x4.val[0] = vfma_laneq_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[1], vsrcA32x4x4.val[1], 0);
+        vsrcC32x2x4.val[1] = vfma_laneq_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[1], vsrcA32x4x4.val[1], 1);
+        vsrcC32x2x4.val[2] = vfma_laneq_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[1], vsrcA32x4x4.val[1], 2);
+        vsrcC32x2x4.val[3] = vfma_laneq_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[1], vsrcA32x4x4.val[1], 3);
 
-        vsrcC32x2x4.val[0] = vmla_n_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[2], vsrcA32x4x4.val[2][0]);
-        vsrcC32x2x4.val[1] = vmla_n_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[2], vsrcA32x4x4.val[2][1]);
-        vsrcC32x2x4.val[2] = vmla_n_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[2], vsrcA32x4x4.val[2][2]);
-        vsrcC32x2x4.val[3] = vmla_n_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[2], vsrcA32x4x4.val[2][3]);
+        vsrcC32x2x4.val[0] = vfma_laneq_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[2], vsrcA32x4x4.val[2], 0);
+        vsrcC32x2x4.val[1] = vfma_laneq_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[2], vsrcA32x4x4.val[2], 1);
+        vsrcC32x2x4.val[2] = vfma_laneq_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[2], vsrcA32x4x4.val[2], 2);
+        vsrcC32x2x4.val[3] = vfma_laneq_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[2], vsrcA32x4x4.val[2], 3);
 
-        vsrcC32x2x4.val[0] = vmla_n_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[3], vsrcA32x4x4.val[3][0]);
-        vsrcC32x2x4.val[1] = vmla_n_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[3], vsrcA32x4x4.val[3][1]);
-        vsrcC32x2x4.val[2] = vmla_n_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[3], vsrcA32x4x4.val[3][2]);
-        vsrcC32x2x4.val[3] = vmla_n_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[3], vsrcA32x4x4.val[3][3]);
+        vsrcC32x2x4.val[0] = vfma_laneq_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[3], vsrcA32x4x4.val[3], 0);
+        vsrcC32x2x4.val[1] = vfma_laneq_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[3], vsrcA32x4x4.val[3], 1);
+        vsrcC32x2x4.val[2] = vfma_laneq_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[3], vsrcA32x4x4.val[3], 2);
+        vsrcC32x2x4.val[3] = vfma_laneq_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[3], vsrcA32x4x4.val[3], 3);
+#else
+        vsrcC32x2x4.val[0] = vmla_lane_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[0], vget_low_f32(vsrcA32x4x4.val[0]), 0);
+        ARM_LOAD_PREFETCH_64(pCurA+16);
+        vsrcC32x2x4.val[1] = vmla_lane_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[0], vget_low_f32(vsrcA32x4x4.val[0]), 1);
+        ARM_LOAD_PREFETCH_32(pCurB+8);
+        vsrcC32x2x4.val[2] = vmla_lane_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[0], vget_high_f32(vsrcA32x4x4.val[0]), 0);
+        vsrcC32x2x4.val[3] = vmla_lane_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[0], vget_high_f32(vsrcA32x4x4.val[0]), 1);
+
+        vsrcC32x2x4.val[0] = vmla_lane_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[1], vget_low_f32(vsrcA32x4x4.val[1]), 0);
+        vsrcC32x2x4.val[1] = vmla_lane_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[1], vget_low_f32(vsrcA32x4x4.val[1]), 1);
+        vsrcC32x2x4.val[2] = vmla_lane_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[1], vget_high_f32(vsrcA32x4x4.val[1]), 0);
+        vsrcC32x2x4.val[3] = vmla_lane_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[1], vget_high_f32(vsrcA32x4x4.val[1]), 1);
+
+        vsrcC32x2x4.val[0] = vmla_lane_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[2], vget_low_f32(vsrcA32x4x4.val[2]), 0);
+        vsrcC32x2x4.val[1] = vmla_lane_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[2], vget_low_f32(vsrcA32x4x4.val[2]), 1);
+        vsrcC32x2x4.val[2] = vmla_lane_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[2], vget_high_f32(vsrcA32x4x4.val[2]), 0);
+        vsrcC32x2x4.val[3] = vmla_lane_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[2], vget_high_f32(vsrcA32x4x4.val[2]), 1);
+
+        vsrcC32x2x4.val[0] = vmla_lane_f32(vsrcC32x2x4.val[0], vsrcB32x2x4.val[3], vget_low_f32(vsrcA32x4x4.val[3]), 0);
+        vsrcC32x2x4.val[1] = vmla_lane_f32(vsrcC32x2x4.val[1], vsrcB32x2x4.val[3], vget_low_f32(vsrcA32x4x4.val[3]), 1);
+        vsrcC32x2x4.val[2] = vmla_lane_f32(vsrcC32x2x4.val[2], vsrcB32x2x4.val[3], vget_high_f32(vsrcA32x4x4.val[3]), 0);
+        vsrcC32x2x4.val[3] = vmla_lane_f32(vsrcC32x2x4.val[3], vsrcB32x2x4.val[3], vget_high_f32(vsrcA32x4x4.val[3]), 1);
+#endif
     }
 
     /* A:4x2 B:2x2 C:4x2 */
@@ -946,17 +1137,35 @@ static void sgemm2xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
 
         vsrcB32x2x4 = vld1_f32_x4(pCurB);
         vsrcA32x2x4 = vld1_f32_x4(pCurA);
-        vsrcC32x2x2.val[0] = vmla_n_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[0], vsrcA32x2x4.val[0][0]);
-        vsrcC32x2x2.val[1] = vmla_n_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[0], vsrcA32x2x4.val[0][1]);
-        ARM_LOAD_PREFETCH_32(pCurB+8);
-        vsrcC32x2x2.val[0] = vmla_n_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[1], vsrcA32x2x4.val[1][0]);
-        vsrcC32x2x2.val[1] = vmla_n_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[1], vsrcA32x2x4.val[1][1]);
-        ARM_LOAD_PREFETCH_32(pCurA+8);
-        vsrcC32x2x2.val[0] = vmla_n_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[2], vsrcA32x2x4.val[2][0]);
-        vsrcC32x2x2.val[1] = vmla_n_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[2], vsrcA32x2x4.val[2][1]);
 
-        vsrcC32x2x2.val[0] = vmla_n_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[3], vsrcA32x2x4.val[3][0]);
-        vsrcC32x2x2.val[1] = vmla_n_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[3], vsrcA32x2x4.val[3][1]);
+#ifdef __aarch64__
+        vsrcC32x2x2.val[0] = vfma_lane_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[0], vsrcA32x2x4.val[0], 0);
+        vsrcC32x2x2.val[1] = vfma_lane_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[0], vsrcA32x2x4.val[0], 1);
+        ARM_LOAD_PREFETCH_32(pCurB+8);
+
+        vsrcC32x2x2.val[0] = vfma_lane_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[1], vsrcA32x2x4.val[1], 0);
+        vsrcC32x2x2.val[1] = vfma_lane_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[1], vsrcA32x2x4.val[1], 1);
+        ARM_LOAD_PREFETCH_32(pCurA+8);
+        vsrcC32x2x2.val[0] = vfma_lane_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[2], vsrcA32x2x4.val[2], 0);
+        vsrcC32x2x2.val[1] = vfma_lane_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[2], vsrcA32x2x4.val[2], 1);
+
+        vsrcC32x2x2.val[0] = vfma_lane_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[3], vsrcA32x2x4.val[3], 0);
+        vsrcC32x2x2.val[1] = vfma_lane_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[3], vsrcA32x2x4.val[3], 1);
+#else
+        vsrcC32x2x2.val[0] = vmla_lane_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[0], vsrcA32x2x4.val[0], 0);
+        vsrcC32x2x2.val[1] = vmla_lane_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[0], vsrcA32x2x4.val[0], 1);
+        ARM_LOAD_PREFETCH_32(pCurB+8);
+
+        vsrcC32x2x2.val[0] = vmla_lane_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[1], vsrcA32x2x4.val[1], 0);
+        vsrcC32x2x2.val[1] = vmla_lane_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[1], vsrcA32x2x4.val[1], 1);
+        ARM_LOAD_PREFETCH_32(pCurA+8);
+
+        vsrcC32x2x2.val[0] = vmla_lane_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[2], vsrcA32x2x4.val[2], 0);
+        vsrcC32x2x2.val[1] = vmla_lane_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[2], vsrcA32x2x4.val[2], 1);
+
+        vsrcC32x2x2.val[0] = vmla_lane_f32(vsrcC32x2x2.val[0], vsrcB32x2x4.val[3], vsrcA32x2x4.val[3], 0);
+        vsrcC32x2x2.val[1] = vmla_lane_f32(vsrcC32x2x2.val[1], vsrcB32x2x4.val[3], vsrcA32x2x4.val[3], 1);
+#endif
     }
 
     /* A:2x2 B:2x2 C:2x2 */
@@ -1070,11 +1279,20 @@ static void sgemm1xKx2_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
         vsrcB32x2x4 = vld1_f32_x4(pCurB);
         vsrcA32x4   = vld1q_f32(pCurA);
 
-        vsrcC32x2 = vmla_n_f32(vsrcC32x2, vsrcB32x2x4.val[0], vsrcA32x4[0]);
+#ifdef __aarch64__
+        vsrcC32x2 = vfma_laneq_f32(vsrcC32x2, vsrcB32x2x4.val[0], vsrcA32x4, 0);
         ARM_LOAD_PREFETCH_32(pCurB+8);
-        vsrcC32x2 = vmla_n_f32(vsrcC32x2, vsrcB32x2x4.val[1], vsrcA32x4[1]);
-        vsrcC32x2 = vmla_n_f32(vsrcC32x2, vsrcB32x2x4.val[2], vsrcA32x4[2]);
-        vsrcC32x2 = vmla_n_f32(vsrcC32x2, vsrcB32x2x4.val[3], vsrcA32x4[3]);
+        vsrcC32x2 = vfma_laneq_f32(vsrcC32x2, vsrcB32x2x4.val[1], vsrcA32x4, 1);
+        vsrcC32x2 = vfma_laneq_f32(vsrcC32x2, vsrcB32x2x4.val[2], vsrcA32x4, 2);
+        vsrcC32x2 = vfma_laneq_f32(vsrcC32x2, vsrcB32x2x4.val[3], vsrcA32x4, 3);
+#else
+        vsrcC32x2 = vmla_lane_f32(vsrcC32x2, vsrcB32x2x4.val[0], vget_low_f32(vsrcA32x4), 0);
+        ARM_LOAD_PREFETCH_32(pCurB+8);
+        vsrcC32x2 = vmla_lane_f32(vsrcC32x2, vsrcB32x2x4.val[1], vget_low_f32(vsrcA32x4), 1);
+        vsrcC32x2 = vmla_lane_f32(vsrcC32x2, vsrcB32x2x4.val[2], vget_high_f32(vsrcA32x4), 0);
+        vsrcC32x2 = vmla_lane_f32(vsrcC32x2, vsrcB32x2x4.val[3], vget_high_f32(vsrcA32x4), 1);
+
+#endif
     }
 
     /* A:1x2 B:2x2 C:1x2 */
@@ -1203,20 +1421,27 @@ static void sgemm4xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     /* A:4x4 B:4x1 C:4x1 */
     for (uint32_t i = 0; i < KDiv4; ++i)
     {
-        float *pCurB = pB+i*4;
         float *pCurA = pA+i*16;
         float32x4x4_t vsrcA32x4x4;
         float32x4_t vsrcB32x4;
 
-        vsrcB32x4 = vld1q_f32(pCurB);
-        vsrcA32x4x4.val[0] = vld1q_f32(pCurA);
-        vsrcA32x4x4.val[1] = vld1q_f32(pCurA+4);
-        vsrcC32x4 = vmlaq_n_f32(vsrcC32x4, vsrcA32x4x4.val[0], vsrcB32x4[0]);
-        vsrcA32x4x4.val[2] = vld1q_f32(pCurA+8);
-        vsrcC32x4 = vmlaq_n_f32(vsrcC32x4, vsrcA32x4x4.val[1], vsrcB32x4[1]);
-        vsrcA32x4x4.val[3] = vld1q_f32(pCurA+12);
-        vsrcC32x4 = vmlaq_n_f32(vsrcC32x4, vsrcA32x4x4.val[2], vsrcB32x4[2]);
-        vsrcC32x4 = vmlaq_n_f32(vsrcC32x4, vsrcA32x4x4.val[3], vsrcB32x4[3]);
+        vsrcB32x4   = vld1q_f32(pB+i*4);
+        vsrcA32x4x4 = vld1q_f32_x4(pCurA);
+
+#ifdef __aarch64__
+        vsrcC32x4 = vfmaq_laneq_f32(vsrcC32x4, vsrcA32x4x4.val[0], vsrcB32x4, 0);
+        ARM_LOAD_PREFETCH_64(pCurA+16);
+        vsrcC32x4 = vfmaq_laneq_f32(vsrcC32x4, vsrcA32x4x4.val[1], vsrcB32x4, 1);
+        vsrcC32x4 = vfmaq_laneq_f32(vsrcC32x4, vsrcA32x4x4.val[2], vsrcB32x4, 2);
+        vsrcC32x4 = vfmaq_laneq_f32(vsrcC32x4, vsrcA32x4x4.val[3], vsrcB32x4, 3);
+#else
+        vsrcC32x4 = vmlaq_lane_f32(vsrcC32x4, vsrcA32x4x4.val[0], vget_low_f32(vsrcB32x4), 0);
+        ARM_LOAD_PREFETCH_64(pCurA+16);
+        vsrcC32x4 = vmlaq_lane_f32(vsrcC32x4, vsrcA32x4x4.val[1], vget_low_f32(vsrcB32x4), 1);
+        vsrcC32x4 = vmlaq_lane_f32(vsrcC32x4, vsrcA32x4x4.val[2], vget_high_f32(vsrcB32x4), 0);
+        vsrcC32x4 = vmlaq_lane_f32(vsrcC32x4, vsrcA32x4x4.val[3], vget_high_f32(vsrcB32x4), 1);
+
+#endif
     }
 
     /* A:4x2 B:2x1 C:4x1 */
@@ -1224,12 +1449,10 @@ static void sgemm4xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     {
         float32x4x2_t vsrcA32x4x2;
         float32x2_t vsrcB32x2;
-        float *pCurB = pB+KDiv4*4;
         float *pCurA = pA+KDiv4*16;
 
-        vsrcB32x2 = vld1_f32(pCurB);
-        vsrcA32x4x2.val[0] = vld1q_f32(pCurA);
-        vsrcA32x4x2.val[1] = vld1q_f32(pCurA+4);
+        vsrcB32x2 = vld1_f32(pB+KDiv4*4);
+        vsrcA32x4x2 = vld1q_f32_x2(pCurA);
         vsrcC32x4 = vmlaq_n_f32(vsrcC32x4, vsrcA32x4x2.val[0], vsrcB32x2[0]);
         vsrcC32x4 = vmlaq_n_f32(vsrcC32x4, vsrcA32x4x2.val[1], vsrcB32x2[1]);
     }
@@ -1321,12 +1544,11 @@ static void sgemm2xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     /* A:2x4 B:4x1 C:2x1 */
     for (uint32_t i = 0; i < KDiv4; ++i)
     {
-        float *pCurB = pB+i*4;
         float *pCurA = pA+i*8;
         float32x2x4_t vsrcA32x2x4;
         float32x4_t vsrcB32x4;
 
-        vsrcB32x4 = vld1q_f32(pCurB);
+        vsrcB32x4 = vld1q_f32(pB+i*4);
         vsrcA32x2x4.val[0] = vld1_f32(pCurA);
         vsrcA32x2x4.val[1] = vld1_f32(pCurA+2);
         vsrcC32x2 = vmla_n_f32(vsrcC32x2, vsrcA32x2x4.val[0], vsrcB32x4[0]);
@@ -1427,13 +1649,8 @@ static void sgemm1xKx1_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_
     /* A:1x4 B:4x1 C:1x1 */
     for (uint32_t i = 0; i < KDiv4; ++i)
     {
-        float *pCurB = pB+i*4;
-        float *pCurA = pA+i*4;
-        float32x4_t vsrcA32x4;
-        float32x4_t vsrcB32x4;
-
-        vsrcB32x4 = vld1q_f32(pCurB);
-        vsrcA32x4 = vld1q_f32(pCurA);
+        float32x4_t vsrcB32x4 = vld1q_f32(pB+i*4);
+        float32x4_t vsrcA32x4 = vld1q_f32(pA+i*4);
         vsrcC32x4 = vmlaq_f32(vsrcC32x4, vsrcA32x4, vsrcB32x4);
     }
     *pC = vsrcC32x4[0] + vsrcC32x4[1] + vsrcC32x4[2] + vsrcC32x4[3];

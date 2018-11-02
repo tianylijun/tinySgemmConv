@@ -21,7 +21,23 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include "list.h"
-#include "messageQueue.h"
+
+enum SGEMM_DataType
+{
+    FLOAT32_TYPE,
+    FLOAT16_TYPE,
+    INT16_TYPE,
+    INT8_TYPE
+};
+
+enum MSG_CMD
+{
+    MSG_CMD_EXIT,
+    MSG_CMD_SGEMM,
+    MSG_CMD_IM2COL,
+
+    MSG_CMD_END
+};
 
 struct thread_info
 {
@@ -50,6 +66,7 @@ struct tinySgemmConvCtx
     struct list_head msgPoolList;
     struct list_head bigCoreThreads;
     struct list_head littleCoreThreads;
+    struct list_head instanceList;
 };
 
 struct tinySgemmInstance
@@ -83,6 +100,7 @@ struct tinySgemmInstance
     bool bIm2colExt;
     bool bNoNeedIm2col;
     struct tinySgemmConvCtx *pCtx;
+    struct list_head listInstanceQueue;
 };
 
 #ifdef __cplusplus
