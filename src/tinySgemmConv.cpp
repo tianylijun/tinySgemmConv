@@ -535,7 +535,7 @@ int tinySgemmConvReleaseInstance(void *pInstance)
     if (false == pInnerInstance->bPackAExt || false == pInnerInstance->bPackBExt)
         tinySgemmFree(pInnerInstance->pPackB[0]);
     free(pInnerInstance);
-    printf("SgemmConvReleaseInstance\n");
+    //printf("SgemmConvReleaseInstance\n");
     return 0;
 }
 
