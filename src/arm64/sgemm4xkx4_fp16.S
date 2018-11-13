@@ -11,7 +11,7 @@ COPYRIGHT_HOLDER:
     .equ      NE_ERR,      -1
 
 /* RSV X19~X28 */
-/* void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm4xKx4_fp16(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
 /**************in param**************/
 #define A                x0
 #define B                x1
@@ -80,6 +80,16 @@ COPYRIGHT_HOLDER:
 #define VMUL_4S          v3.4S
 #define VMUL_16B         v3.16B
 
+#define VSRC_4H_TMP0     v20.4H
+#define VSRC_8H_TMP0     v20.8H
+#define VSRC_4H_TMP1     v21.4H
+#define VSRC_8H_TMP1     v21.8H
+
+#define VSRC_4H_TMP2     v22.4H
+#define VSRC_8H_TMP2     v22.8H
+#define VSRC_4H_TMP3     v23.4H
+#define VSRC_8H_TMP3     v23.8H
+
 #define VSRC_4S_C0_0     v28.4S
 #define VSRC_4S_C1_0     v29.4S
 #define VSRC_4S_C2_0     v30.4S
@@ -90,15 +100,15 @@ COPYRIGHT_HOLDER:
 #define VSRC_16B_C2_0    v30.16B
 #define VSRC_16B_C3_0    v31.16B
 
-/* void sgemm4xKx4_fp32(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
+/* void sgemm4xKx4_fp16(float *pA, float *pB, float *pC, uint32_t K, uint32_t N, uint32_t reluType, float *pPrelu, uint32_t bSharedPrelu, float *pBasis) */
     .text
     .align 5
 #ifdef __APPLE__
-    .global _sgemm4xKx4_fp32
-_sgemm4xKx4_fp32:
+    .global _sgemm4xKx4_fp16
+_sgemm4xKx4_fp16:
 #else
-    .global sgemm4xKx4_fp32
-sgemm4xKx4_fp32:
+    .global sgemm4xKx4_fp16
+sgemm4xKx4_fp16:
 #endif
     ldr pBasis, ST_pBasis
 
@@ -116,27 +126,35 @@ sgemm4xKx4_fp32:
     beq __KHAS2
 
 __LOOP:
-    /* 0 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1, VSRC_4S_B2, VSRC_4S_B3}, [B], #64
+    ld1 {VSRC_8H_TMP2, VSRC_8H_TMP3}, [A], #32
+    fcvtl   VSRC_4S_A0, VSRC_4H_TMP2
     subs KDiv4, KDiv4, #1
-    ld1 {VSRC_4S_A0, VSRC_4S_A1, VSRC_4S_A2, VSRC_4S_A3}, [A], #64
+    ld1 {VSRC_8H_TMP0, VSRC_8H_TMP1}, [B], #32
 
-    prfm PLDL1KEEP, [B, #64]
+    /* 0 */
+    prfm PLDL1KEEP, [B, #32]
+    fcvtl   VSRC_4S_B0, VSRC_4H_TMP0
     fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A0_0
+    fcvtl2  VSRC_4S_A1, VSRC_8H_TMP2
     fmla VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A0_1
-    prfm PLDL1KEEP, [A, #64]
+    prfm PLDL1KEEP, [A, #32]
+    fcvtl2  VSRC_4S_B1, VSRC_8H_TMP0
     fmla VSRC_4S_C2_0, VSRC_4S_B0, VSRC_4S_A0_2
     fmla VSRC_4S_C3_0, VSRC_4S_B0, VSRC_4S_A0_3
 
     /* 1 */
     fmla VSRC_4S_C0_0, VSRC_4S_B1, VSRC_4S_A1_0
+    fcvtl   VSRC_4S_A2, VSRC_4H_TMP3
     fmla VSRC_4S_C1_0, VSRC_4S_B1, VSRC_4S_A1_1
+    fcvtl   VSRC_4S_B2, VSRC_4H_TMP1
     fmla VSRC_4S_C2_0, VSRC_4S_B1, VSRC_4S_A1_2
     fmla VSRC_4S_C3_0, VSRC_4S_B1, VSRC_4S_A1_3
 
     /* 2 */
     fmla VSRC_4S_C0_0, VSRC_4S_B2, VSRC_4S_A2_0
+    fcvtl2  VSRC_4S_A3, VSRC_8H_TMP3
     fmla VSRC_4S_C1_0, VSRC_4S_B2, VSRC_4S_A2_1
+    fcvtl2  VSRC_4S_B3, VSRC_8H_TMP1
     fmla VSRC_4S_C2_0, VSRC_4S_B2, VSRC_4S_A2_2
     fmla VSRC_4S_C3_0, VSRC_4S_B2, VSRC_4S_A2_3
 
@@ -154,14 +172,18 @@ __KHAS2:
     cmp KHas2, #0
     beq __KHAS1
 
-    /* 0 */
-    ld1 {VSRC_4S_B0, VSRC_4S_B1}, [B], #32
-    ld1 {VSRC_4S_A0, VSRC_4S_A1}, [A], #32
+    ld1 {VSRC_8H_TMP2}, [A], #16
+    fcvtl   VSRC_4S_A0, VSRC_4H_TMP2
+    ld1 {VSRC_8H_TMP0}, [B], #16
 
-    prfm PLDL1KEEP, [A, #16]
-    fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A0_0
+    /* 0 */
     prfm PLDL1KEEP, [B, #16]
+    fcvtl   VSRC_4S_B0, VSRC_4H_TMP0
+    fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A0_0
+    fcvtl2  VSRC_4S_A1, VSRC_8H_TMP2
     fmla VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A0_1
+    prfm PLDL1KEEP, [A, #8]
+    fcvtl2  VSRC_4S_B1, VSRC_8H_TMP0
     fmla VSRC_4S_C2_0, VSRC_4S_B0, VSRC_4S_A0_2
     fmla VSRC_4S_C3_0, VSRC_4S_B0, VSRC_4S_A0_3
 
@@ -177,9 +199,10 @@ __KHAS1:
     beq __BASIS
 
     /* 0 */
-    ld1 {VSRC_4S_B0}, [B]
-    ld1 {VSRC_4S_A0}, [A]
-
+    ld1 {VSRC_4H_TMP2}, [A]
+    fcvtl   VSRC_4S_A0, VSRC_4H_TMP2
+    ld1 {VSRC_4H_TMP0}, [B]
+    fcvtl VSRC_4S_B0, VSRC_4H_TMP0
     fmla VSRC_4S_C0_0, VSRC_4S_B0, VSRC_4S_A0_0
     fmla VSRC_4S_C1_0, VSRC_4S_B0, VSRC_4S_A0_1
     fmla VSRC_4S_C2_0, VSRC_4S_B0, VSRC_4S_A0_2

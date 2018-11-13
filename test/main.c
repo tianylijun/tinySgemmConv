@@ -142,8 +142,7 @@ int main(int argc, char const *argv[])
     uint32_t strideW = 1, strideH = 1, outChannels = 128, dilateW = 1, dilateH = 1, outputW, outputH, M, N, K;
     void *pCtx, *psgemmInstance;
     enum TINY_SGEMM_RELU_TYPE reluType = TINY_SGEMM_RELU_TYPE_NORELU;
-    bool fuse_relu = false, fuse_relu6 = true, bSharedPrelu = true;
-    //uint32_t affinity[MAX_CORE_NUMBER] = {0xf0, 0xf0, 0xf0, 0xf};
+    bool fuse_relu = false, fuse_relu6 = false, bSharedPrelu = false;
     uint32_t affinity[MAX_CORE_NUMBER] = {0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff};
     float *pPrelu = NULL, *pBias = NULL, *pWeight = NULL, *pInput = NULL, *pOutputRef = NULL, *pOutput = NULL;
     struct timeval beg, end;
@@ -180,11 +179,11 @@ int main(int argc, char const *argv[])
            padW, padH,
            strideW, strideH,
            outChannels, outputW, outputH);
-#if 0
+#if 1
     pPrelu     = malloc(M*sizeof(float));
-#else
-    pBias      = malloc(M*sizeof(float));
 #endif
+    pBias      = malloc(M*sizeof(float));
+
     pWeight    = malloc(M*K*sizeof(float));
     pInput     = malloc(inChannels*inputW*inputH*sizeof(float));
     pOutputRef = malloc((M*(N + 16))*sizeof(float));
